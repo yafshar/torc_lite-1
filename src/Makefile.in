@@ -98,7 +98,8 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 DIST_COMMON = $(srcdir)/Makefile.am $(torcinc_HEADERS) \
 	$(am__DIST_COMMON)
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/include/torc_config.h
+CONFIG_HEADER = $(top_builddir)/include/torc_config.h \
+	$(top_builddir)/include/torcf_config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 am__vpath_adj_setup = srcdirstrip=`echo "$(srcdir)" | sed 's|.|.|g'`;
@@ -322,7 +323,7 @@ AM_CFLAGS = @DEBUG_FLAG@ -DMAX_NVPS=@NVPS@ -DMAX_NODES=@NNODES@ -I../include -I.
 libtorc_a_SOURCES = torc_runtime.c torc_queue.c torc_thread.c torc_comm.c torc_server.c torc.c
 torcincdir = $(includedir)
 #torcinc_HEADERS = $(INC)/torc_data.h $(INC)/torc_internal.h $(INC)/torc.h $(INC)/torc_mpi_internal.h $(INC)/torc_queue.h $(INC)/utils.h $(INC)/ps_config.h $(INC)/locks.h $(INC)/queues.h $(INC)/torcf.h
-torcinc_HEADERS = $(INC)/torc.h $(INC)/torcf.h 
+torcinc_HEADERS = $(INC)/torc.h $(INC)/torcf.h $(INC)/torcf_config.h 
 all: all-am
 
 .SUFFIXES:

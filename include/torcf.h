@@ -3,7 +3,7 @@ C     Predefined datatypes
 C
 
       INCLUDE 'mpif.h'
-      INCLUDE 'torcf_config.h'
+      INCLUDE './torcf_config.h'
 
 C
 C
