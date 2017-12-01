@@ -3,6 +3,7 @@
 !
 
       INCLUDE 'mpif.h'
+      INCLUDE 'torc_config.h'
 
 !
 !
