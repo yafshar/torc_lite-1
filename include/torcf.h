@@ -45,30 +45,22 @@ C
 
       DOUBLE PRECISION torc_gettime
 
-#if F77_FUNC_(torc_init, TORC_INIT) == torc_init
-      EXTERNAL torc_initf
-#else
-      EXTERNAL torc_init
-#endif
       EXTERNAL torc_finalize
       EXTERNAL torc_taskinit
-#if F77_FUNC_(torc_create, TORC_CREATE) == torc_create
-      EXTERNAL torc_createf
-#else
-      EXTERNAL torc_create
-#endif
-#if F77_FUNC_(torc_task, TORC_TASK) == torc_task
-      EXTERNAL torc_taskf
-#else
-      EXTERNAL torc_task
-#endif
       EXTERNAL torc_waitall
       EXTERNAL torc_register_task
       EXTERNAL torc_enable_stealing
       EXTERNAL torc_disable_stealing
-#if F77_FUNC_(torc_broadcast, TORC_BROADCAST) == torc_broadcast
+#ifdef f77func
       EXTERNAL torc_broadcastf
+      EXTERNAL torc_initf
+      EXTERNAL torc_createf
+      EXTERNAL torc_taskf
 #else
+      EXTERNAL torc_init
       EXTERNAL torc_broadcast
+      EXTERNAL torc_create
+      EXTERNAL torc_task
 #endif
       EXTERNAL torc_sleep
+#undef f77func
