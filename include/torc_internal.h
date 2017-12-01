@@ -77,7 +77,7 @@ torc_t *_torc_self();
 void    _torc_stats();
 void    _torc_depadd(torc_t *, int);
 int     _torc_block();
-int     _torc_block2());
+int     _torc_block2();
 int     _torc_depsatisfy(torc_t *);
 void    _torc_md_init(void);
 void    _torc_md_end(void);
