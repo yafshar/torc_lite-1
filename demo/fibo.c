@@ -9,6 +9,7 @@
 #include <torc.h>
 #include <math.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define FIB_NUM  50
 #define LEVELS    5

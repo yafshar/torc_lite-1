@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <torc.h>
+#include <unistd.h>
 
 int times = 0;
 

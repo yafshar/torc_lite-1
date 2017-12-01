@@ -12,6 +12,8 @@
 #include <math.h>
 #include <torc.h>
 #include <sys/wait.h>
+#include <unistd.h>
+
 int times = 0;
 
 void slave(double *pin, double *out)

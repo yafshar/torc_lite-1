@@ -12,6 +12,7 @@
 #include <math.h>
 #include <torc.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 int times = 0;
 int DATA_ENTRIES;    //    11
