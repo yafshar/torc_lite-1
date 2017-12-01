@@ -538,7 +538,11 @@ void F77_FUNC_(torc_waitall, TORC_WAITALL)()
 }
 #endif
 
+#if F77_FUNC_(torc_create, TORC_CREATE) == torc_create
+void F77_FUNC_(torc_createf, TORC_CREATEF) (int *pqueue, void (* work) (), int *pnarg, ...)
+#else
 void F77_FUNC_(torc_create, TORC_CREATE) (int *pqueue, void (* work) (), int *pnarg, ...)
+#endif
 {
     int queue = *pqueue;
     int narg = *pnarg;
@@ -629,7 +633,11 @@ void F77_FUNC_(torc_create, TORC_CREATE) (int *pqueue, void (* work) (), int *pn
 }
 
 // this is here to support the new pndl version
+#if F77_FUNC_(torc_task, TORC_TASK) == torc_task
+void F77_FUNC_(torc_taskf, TORC_TASKF) (void (* work) (), int *ptype, int *pnarg, ...)
+#else
 void F77_FUNC_(torc_task, TORC_TASK) (void (* work) (), int *ptype, int *pnarg, ...)
+#endif
 {
     int queue = torc_worker_id(); //*pqueue;
     int narg = *pnarg;
@@ -720,44 +728,66 @@ void F77_FUNC_(torc_task, TORC_TASK) (void (* work) (), int *ptype, int *pnarg, 
     }
 }
 
-
+#if F77_FUNC_(torc_num_workers, TORC_NUM_WORKERS) == torc_num_workers
+#else
 int F77_FUNC_(torc_num_workers, TORC_NUM_WORKERS) (void)
 {
     return torc_num_workers();
 }
+#endif
 
+#if F77_FUNC_(torc_worker_id, TORC_WORKER_ID) == torc_worker_id
+#else
 int F77_FUNC_(torc_worker_id, TORC_WORKER_ID) (void)
 {
     return torc_worker_id();
 }
+#endif
 
+#if F77_FUNC_(torc_node_id, TORC_NODE_ID) == torc_node_id
+#else
 int F77_FUNC_(torc_node_id, TORC_NODE_ID) (void)
 {
     return torc_node_id();
 }
+#endif
 
+#if F77_FUNC_(torc_num_nodes, TORC_NUM_NODES) == torc_num_nodes
+#else
 int F77_FUNC_(torc_num_nodes, TORC_NUM_NODES) (void)
 {
     return torc_num_nodes();
 }
+#endif
 
-void F77_FUNC_ (torc_broadcast, TORC_BROADCAST) (void *a, long *count, MPI_Fint *datatype)
+#if F77_FUNC_(torc_broadcast, TORC_BROADCAST) == torc_broadcast
+void F77_FUNC_(torc_broadcastf, TORC_BROADCASTF) (void *a, long *count, MPI_Fint *datatype)
+#else
+void F77_FUNC_(torc_broadcast, TORC_BROADCAST) (void *a, long *count, MPI_Fint *datatype)
+#endif
 {
+
     MPI_Datatype dt;
 
     dt = MPI_Type_f2c(*datatype);
     torc_broadcast(a, *count, dt);
 }
 
+#if F77_FUNC_(torc_enable_stealing, TORC_ENABLE_STEALING) == torc_enable_stealing
+#else
 void F77_FUNC_ (torc_enable_stealing, TORC_ENABLE_STEALING) ()
 {
     torc_enable_stealing ();
 }
+#endif
 
+#if F77_FUNC_(torc_disable_stealing, TORC_DISABLE_STEALING) == torc_disable_stealing
+#else
 void F77_FUNC_ (torc_disable_stealing, TORC_DISABLE_STEALING) ()
 {
     torc_disable_stealing ();
 }
+#endif
 
 int torc_sched_nextcpu(int cpu, int stride)
 {
@@ -773,20 +803,30 @@ int torc_sched_nextcpu(int cpu, int stride)
     return res;
 }
 
+#if F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU) == torc_sched_nextcpu
+#else
 int F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU) (int *cpu, int *stride)
 {
     return torc_sched_nextcpu(*cpu, *stride);
 }
+#endif
 
+#if F77_FUNC_(torc_init, TORC_INIT) == torc_init
+void F77_FUNC_(torc_initf, TORC_INITF) (int *mode)
+#else
 void F77_FUNC_(torc_init, TORC_INIT) (int *mode)
+#endif
 {
     torc_init(0, NULL, *mode);
 }
 
+#if F77_FUNC_(torc_finalize, TORC_FINALIZE) == torc_finalize
+#else
 void F77_FUNC_(torc_finalize, TORC_FINALIZE) ()
 {
     torc_finalize();
 }
+#endif
 
 void F77_FUNC_(fff, FFF) ()
 {
