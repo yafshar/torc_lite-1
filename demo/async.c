@@ -169,7 +169,7 @@ void slave(int *ptid, double *pin)
 
 void torc_dispatch()
 {
-    _torc_scheduler_loop(1);
+    torc_scheduler_loop(1);
 }
 
 

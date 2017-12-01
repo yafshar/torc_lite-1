@@ -14,7 +14,7 @@ void taskf(int a, double *res) {
 //                          a, res);
 }
 
-void main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
     int i;
     double y[10];
 
@@ -33,4 +33,5 @@ void main(int argc, char *argv[]) {
 
     for (i=0; i<10; i++) printf("sqrt(%d)=%lf\n", i, y[i]);
     torc_finalize();
+    return 0;
 }

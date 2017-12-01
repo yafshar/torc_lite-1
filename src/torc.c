@@ -50,6 +50,11 @@ void torc_waitall3()
     }
 }
 
+int torc_scheduler_loop(int once)
+{
+    return _torc_scheduler_loop(once);
+}
+
 #define _initialize(rte)                              \
 {                                                     \
     rte->homenode = rte->sourcenode = torc_node_id(); \

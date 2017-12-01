@@ -59,6 +59,7 @@ void torc_waitall();
 void torc_waitall2();
 void torc_waitall3();
 void torc_tasksync();
+int  torc_scheduler_loop(int);
 
 //#ifndef __cplusplus
 void torc_task(int queue, void (*f) (), int narg, ...);
