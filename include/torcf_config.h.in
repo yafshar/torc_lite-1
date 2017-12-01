@@ -1,0 +1,10 @@
+/* include/torc_config.h.in.  Generated from configure.ac by autoheader.  */
+
+
+/* Define to a macro mangling the given C identifier (in lower and upper
+   case), which must not contain underscores, for linking with Fortran. */
+#undef F77_FUNC
+
+/* As F77_FUNC, but for C identifiers containing underscores. */
+#undef F77_FUNC_
+

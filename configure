@@ -2397,6 +2397,8 @@ test -n "$target_alias" &&
 
 ac_config_headers="$ac_config_headers include/torc_config.h"
 
+ac_config_headers="$ac_config_headers include/torcf_config.h"
+
 am__api_version='1.15'
 
 # Find a good install program.  We prefer a C program (faster),
@@ -6763,6 +6765,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "include/torc_config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/torc_config.h" ;;
+    "include/torcf_config.h") CONFIG_HEADERS="$CONFIG_HEADERS include/torcf_config.h" ;;
     "depfiles") CONFIG_COMMANDS="$CONFIG_COMMANDS depfiles" ;;
     "Makefile") CONFIG_FILES="$CONFIG_FILES Makefile" ;;
     "src/Makefile") CONFIG_FILES="$CONFIG_FILES src/Makefile" ;;

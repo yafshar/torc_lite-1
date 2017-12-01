@@ -28,6 +28,7 @@ AC_CONFIG_AUX_DIR(auxdir)
 AC_CANONICAL_SYSTEM
 
 AC_CONFIG_HEADERS(include/torc_config.h)
+AC_CONFIG_HEADERS(include/torcf_config.h)
 AM_INIT_AUTOMAKE
 
 AC_PROG_CC(mpicc)

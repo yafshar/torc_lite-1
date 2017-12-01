@@ -1,38 +1,49 @@
-!
-!     Predefined datatypes
-!
+C
+C     Predefined datatypes
+C
 
       INCLUDE 'mpif.h'
-      INCLUDE 'torc_config.h'
+      INCLUDE 'torcf_config.h'
 
-!
-!
-!
+C
+C
+C
 
-      INTEGER, PARMETER :: MODE_MS = 0
-      INTEGER, PAREMETR :: MODE_SPMD = 1
+      INTEGER MODE_MS
+      INTEGER MODE_SPMD
 
-      INTEGER, PAREMETR :: CALL_BY_COP = x'0001'
-      INTEGER, PAREMETR :: CALL_BY_REF = x'0002'
-      INTEGER, PAREMETR :: CALL_BY_RES = x'0003'
-      INTEGER, PAREMETR :: CALL_BY_PTR = x'0004'
-      INTEGER, PAREMETR :: CALL_BY_VAL = x'0001'
-      INTEGER, PAREMETR :: CALL_BY_COP2= x'0005'
-      INTEGER, PAREMETR :: CALL_BY_VAD = x'0006'
+      PARAMETER (MODE_MS   = 0)
+      PARAMETER (MODE_SPMD = 1)
 
-!
-!     INTERFACE
-!
+      INTEGER CALL_BY_COP
+      INTEGER CALL_BY_REF
+      INTEGER CALL_BY_RES
+      INTEGER CALL_BY_PTR
+      INTEGER CALL_BY_VAL
+      INTEGER CALL_BY_COP2
+      INTEGER CALL_BY_VAD
 
-      INTEGER*4 :: torc_worker_id
-      INTEGER*4 :: torc_num_workers
-      INTEGER*4 :: torc_i_worker_id
-      INTEGER*4 :: torc_i_num_workers
-      INTEGER*4 :: torc_node_id
-      INTEGER*4 :: torc_num_nodes
-      INTEGER*4 :: torc_sched_nextcpu
+      PARAMETER (CALL_BY_COP  = x'0001')
+      PARAMETER (CALL_BY_REF  = x'0002')
+      PARAMETER (CALL_BY_RES  = x'0003')
+      PARAMETER (CALL_BY_PTR  = x'0004')
+      PARAMETER (CALL_BY_VAL  = x'0001')
+      PARAMETER (CALL_BY_COP2 = x'0005')
+      PARAMETER (CALL_BY_VAD  = x'0006')
 
-      DOUBLE PRECISION :: torc_gettime
+C
+C     INTERFACE
+C
+
+      INTEGER*4 torc_worker_id
+      INTEGER*4 torc_num_workers
+      INTEGER*4 torc_i_worker_id
+      INTEGER*4 torc_i_num_workers
+      INTEGER*4 torc_node_id
+      INTEGER*4 torc_num_nodes
+      INTEGER*4 torc_sched_nextcpu
+
+      DOUBLE PRECISION torc_gettime
 
 #if F77_FUNC_(torc_init, TORC_INIT) == torc_init
       EXTERNAL torc_initf
