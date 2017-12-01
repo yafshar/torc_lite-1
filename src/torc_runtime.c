@@ -344,7 +344,6 @@ void _torc_env_init(void)
     _torc_comm_init();
 }
 
-
 torc_t *get_next_task()
 {
     int self_node = torc_node_id();
@@ -377,7 +376,6 @@ torc_t *get_next_task()
 
     return rte_next;
 }
-
 
 int torc_fetch_work()
 {
@@ -446,7 +444,6 @@ int _torc_scheduler_loop (int once)
     }
 }
 
-
 /* WTH is this? Maybe just a backup of the code? */
 int _torc_scheduler_loop2 (int once)
 {
@@ -476,5 +473,3 @@ int _torc_scheduler_loop2 (int once)
         if (once) return 0;    // what is this?
     }
 }
-
-

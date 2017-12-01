@@ -452,8 +452,6 @@ void torc_disable_stealing ()
     }
 }
 
-
-
 void torc_enable_stealing ()
 {
     torc_t mydata;
