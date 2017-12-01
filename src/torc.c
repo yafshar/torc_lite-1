@@ -543,11 +543,7 @@ void F77_FUNC_(torc_waitall, TORC_WAITALL)()
 }
 #endif
 
-#if F77_FUNC_(torc_create, TORC_CREATE) == torc_create
 void F77_FUNC_(torc_createf, TORC_CREATEF) (int *pqueue, void (* work) (), int *pnarg, ...)
-#else
-void F77_FUNC_(torc_create, TORC_CREATE) (int *pqueue, void (* work) (), int *pnarg, ...)
-#endif
 {
     int queue = *pqueue;
     int narg = *pnarg;
@@ -638,11 +634,7 @@ void F77_FUNC_(torc_create, TORC_CREATE) (int *pqueue, void (* work) (), int *pn
 }
 
 // this is here to support the new pndl version
-#if F77_FUNC_(torc_task, TORC_TASK) == torc_task
 void F77_FUNC_(torc_taskf, TORC_TASKF) (void (* work) (), int *ptype, int *pnarg, ...)
-#else
-void F77_FUNC_(torc_task, TORC_TASK) (void (* work) (), int *ptype, int *pnarg, ...)
-#endif
 {
     int queue = torc_worker_id(); //*pqueue;
     int narg = *pnarg;
@@ -765,11 +757,7 @@ int F77_FUNC_(torc_num_nodes, TORC_NUM_NODES) (void)
 }
 #endif
 
-#if F77_FUNC_(torc_broadcast, TORC_BROADCAST) == torc_broadcast
 void F77_FUNC_(torc_broadcastf, TORC_BROADCASTF) (void *a, long *count, MPI_Fint *datatype)
-#else
-void F77_FUNC_(torc_broadcast, TORC_BROADCAST) (void *a, long *count, MPI_Fint *datatype)
-#endif
 {
 
     MPI_Datatype dt;
@@ -816,11 +804,7 @@ int F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU) (int *cpu, int *stride)
 }
 #endif
 
-#if F77_FUNC_(torc_init, TORC_INIT) == torc_init
 void F77_FUNC_(torc_initf, TORC_INITF) (int *mode)
-#else
-void F77_FUNC_(torc_init, TORC_INIT) (int *mode)
-#endif
 {
     torc_init(0, NULL, *mode);
 }

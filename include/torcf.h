@@ -3,7 +3,6 @@ C     Predefined datatypes
 C
 
       INCLUDE 'mpif.h'
-      INCLUDE './torcf_config.h'
 
 C
 C
@@ -51,16 +50,11 @@ C
       EXTERNAL torc_register_task
       EXTERNAL torc_enable_stealing
       EXTERNAL torc_disable_stealing
-#ifdef f77func
+      EXTERNAL torc_sleep
+
       EXTERNAL torc_broadcastf
       EXTERNAL torc_initf
       EXTERNAL torc_createf
       EXTERNAL torc_taskf
-#else
-      EXTERNAL torc_init
-      EXTERNAL torc_broadcast
-      EXTERNAL torc_create
-      EXTERNAL torc_task
-#endif
-      EXTERNAL torc_sleep
-#undef f77func
+
+
