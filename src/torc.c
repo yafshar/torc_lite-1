@@ -14,6 +14,8 @@
 #include <string.h>
 #include <sys/time.h>
 
+#define f77fun  1
+
 extern MPI_Comm comm_out;
 
 void torc_waitall()
@@ -535,7 +537,7 @@ void F77_FUNC_(torc_taskinit, TORC_TASKINIT)()
     /* nothing to do */
 }
 
-#if F77_FUNC_(torc_waitall, TORC_WAITALL) == torc_waitall
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 void F77_FUNC_(torc_waitall, TORC_WAITALL)()
 {
@@ -725,7 +727,7 @@ void F77_FUNC_(torc_taskf, TORC_TASKF) (void (* work) (), int *ptype, int *pnarg
     }
 }
 
-#if F77_FUNC_(torc_num_workers, TORC_NUM_WORKERS) == torc_num_workers
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 int F77_FUNC_(torc_num_workers, TORC_NUM_WORKERS) (void)
 {
@@ -733,7 +735,7 @@ int F77_FUNC_(torc_num_workers, TORC_NUM_WORKERS) (void)
 }
 #endif
 
-#if F77_FUNC_(torc_worker_id, TORC_WORKER_ID) == torc_worker_id
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 int F77_FUNC_(torc_worker_id, TORC_WORKER_ID) (void)
 {
@@ -741,7 +743,7 @@ int F77_FUNC_(torc_worker_id, TORC_WORKER_ID) (void)
 }
 #endif
 
-#if F77_FUNC_(torc_node_id, TORC_NODE_ID) == torc_node_id
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 int F77_FUNC_(torc_node_id, TORC_NODE_ID) (void)
 {
@@ -749,7 +751,7 @@ int F77_FUNC_(torc_node_id, TORC_NODE_ID) (void)
 }
 #endif
 
-#if F77_FUNC_(torc_num_nodes, TORC_NUM_NODES) == torc_num_nodes
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 int F77_FUNC_(torc_num_nodes, TORC_NUM_NODES) (void)
 {
@@ -766,7 +768,7 @@ void F77_FUNC_(torc_broadcastf, TORC_BROADCASTF) (void *a, long *count, MPI_Fint
     torc_broadcast(a, *count, dt);
 }
 
-#if F77_FUNC_(torc_enable_stealing, TORC_ENABLE_STEALING) == torc_enable_stealing
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 void F77_FUNC_ (torc_enable_stealing, TORC_ENABLE_STEALING) ()
 {
@@ -774,7 +776,7 @@ void F77_FUNC_ (torc_enable_stealing, TORC_ENABLE_STEALING) ()
 }
 #endif
 
-#if F77_FUNC_(torc_disable_stealing, TORC_DISABLE_STEALING) == torc_disable_stealing
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 void F77_FUNC_ (torc_disable_stealing, TORC_DISABLE_STEALING) ()
 {
@@ -796,7 +798,7 @@ int torc_sched_nextcpu(int cpu, int stride)
     return res;
 }
 
-#if F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU) == torc_sched_nextcpu
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 int F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU) (int *cpu, int *stride)
 {
@@ -809,7 +811,7 @@ void F77_FUNC_(torc_initf, TORC_INITF) (int *mode)
     torc_init(0, NULL, *mode);
 }
 
-#if F77_FUNC_(torc_finalize, TORC_FINALIZE) == torc_finalize
+#if F77_FUNC_(f77fun, F77FUN) == f77fun
 #else
 void F77_FUNC_(torc_finalize, TORC_FINALIZE) ()
 {
@@ -823,3 +825,5 @@ void F77_FUNC_(fff, FFF) ()
 }
 
 #endif
+
+#undef f77fun
