@@ -76,8 +76,8 @@ void start_worker(long id)
 
     pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-/**    res = pthread_attr_setstacksize(&attr, 64*1024*1024) **/
-//    printf("res = %d\n", res);
+    /**    res = pthread_attr_setstacksize(&attr, 64*1024*1024) **/
+    //    printf("res = %d\n", res);
 
     res = pthread_create(&pth, &attr, _torc_worker, (void *)id);
     if (res == 0)
@@ -109,10 +109,10 @@ void _torc_md_init()
         start_server_thread();
     }
 
-/*    node_info[this_node].nworkers = 1;*/
+    /*    node_info[this_node].nworkers = 1;*/
     //pthread_barrier_init(&bar, NULL, kthreads);
     for (i = 1; i<kthreads; i++) {
-/*        node_info[this_node].nworkers++;*/
+        /*        node_info[this_node].nworkers++;*/
         start_worker((long)i);
     }
 
@@ -136,43 +136,43 @@ void _torc_md_end ()
     }while (__created < kthreads) {
 
 
-    if (my_vp==0) {
-        while (1)
-        {
-        pthread_mutex_lock(&al);
-        if (active_workers == 1)
-        {
-            pthread_mutex_unlock(&al);
-            break;
-        }
-        else {
-            pthread_mutex_unlock(&al);
-            sched_yield();
-        }
-        }
-        /* We need a barrier here to avoid potential deadlock problems */
-        enter_comm_cs();
-        MPI_Barrier(MPI_COMM_WORLD);
-        leave_comm_cs();
+        if (my_vp==0) {
+            while (1)
+            {
+                pthread_mutex_lock(&al);
+                if (active_workers == 1)
+                {
+                    pthread_mutex_unlock(&al);
+                    break;
+                }
+                else {
+                    pthread_mutex_unlock(&al);
+                    sched_yield();
+                }
+            }
+            /* We need a barrier here to avoid potential deadlock problems */
+            enter_comm_cs();
+            MPI_Barrier(MPI_COMM_WORLD);
+            leave_comm_cs();
 
-        if (torc_num_nodes() > 1) {
-            shutdown_server_thread();
-        }
-        _torc_stats();
+            if (torc_num_nodes() > 1) {
+                shutdown_server_thread();
+            }
+            _torc_stats();
 
-        MPI_Barrier(MPI_COMM_WORLD);
-        MPI_Finalize();
-        exit(0);
+            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Finalize();
+            exit(0);
+        }
     }
 }
-
 
 void thread_sleep(int ms)
 {
     struct timespec req, rem;
 
-//    sched_yield();
-//    return 0;
+    //    sched_yield();
+    //    return 0;
 
     req.tv_sec = ms / 1000;
     req.tv_nsec = (ms % 1000)*1E6;
