@@ -17,7 +17,9 @@
 //void scheduler_loop (int);
 
 pthread_mutex_t __m = PTHREAD_MUTEX_INITIALIZER;
-int __created = 0;
+
+unsigned int __created = 0;
+
 //pthread_barrier_t bar;
 typedef void (*sched_f)();
 
@@ -98,7 +100,7 @@ static int active_workers;
 void _torc_md_init()
 {
     unsigned int i;
-    int this_node = torc_node_id();
+    //int this_node = torc_node_id();
 
     pthread_key_create(&vp_key, NULL);
     pthread_key_create(&currt_key, NULL);
@@ -120,9 +122,7 @@ void _torc_md_init()
 
 void _torc_md_end ()
 {
-    unsigned int i;
     unsigned int my_vp;
-    int res;
 
     my_vp = _torc_get_vpid();
 #if DBG
@@ -133,7 +133,8 @@ void _torc_md_end ()
         active_workers--;
         pthread_mutex_unlock(&al);
         pthread_exit(0);
-    }
+    }while (__created < kthreads) {
+
 
     if (my_vp==0) {
         while (1)

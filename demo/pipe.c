@@ -114,9 +114,6 @@ void *posix(void *arg)
 
 int main(int argc, char *argv[])
 {
-    int i;
-    double t0, t1;
-
     int provided;
     MPI_Init_thread(&argc, &argv, MPI_THREAD_MULTIPLE, &provided);
 

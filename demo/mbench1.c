@@ -85,7 +85,6 @@ int my_main (void)
 
 int main (int argc, char * argv [])
 {
-    char * p;
     unsigned int nthreads;
 
     if (argc != 1)

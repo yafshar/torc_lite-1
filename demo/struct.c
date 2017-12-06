@@ -37,7 +37,6 @@ void slave(struct tdata *datain, double *out)
 int main(int argc, char *argv[])
 {
     int cnt = 4;
-    double di;
     double *result;
     double *ii;
     int i;

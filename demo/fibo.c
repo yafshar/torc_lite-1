@@ -16,11 +16,8 @@
 
 void slave (unsigned long *pn, unsigned long *res)
 {
-    int i = 0;
     unsigned long res1 = 0;
     unsigned long res2 = 0;
-    int nodes;
-    int rand_node;
     unsigned long n = *pn;
 
     if ((n == 0) || (n==1))
@@ -57,7 +54,6 @@ int main(int argc, char *argv[])
 {
     unsigned long res;
     double time1, time2, elapsed;
-    int vp;
     unsigned long n = FIB_NUM;
 
     if (argc == 2) n = atoi(argv[1]);

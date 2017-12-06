@@ -24,10 +24,9 @@ volatile int termination_flag = 0;
 int process_a_received_descriptor(torc_t *work/*, int tag1*/)
 {
     int reuse = 0;
-    torc_t *stolen_work, *parent;
+    torc_t *stolen_work;
     MPI_Status status;
     int i, istat, tag;
-    char *mem;
 
     work->next = NULL;
 
