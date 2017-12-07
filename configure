@@ -1406,7 +1406,7 @@ Optional Packages:
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
   --with-sync=method      posix synchronization mechanism (mutex, mutex_try,
                           spin, spin_try)
-  --with-maxnodes=num     maximum number of nodes (default: 64)
+  --with-maxnodes=num     maximum number of nodes (default: 1024)
   --with-maxvps=num       maximum number of virtual processors (default: 64)
   --with-cachelinesize=value
                           cache line size
@@ -5643,7 +5643,7 @@ fi
 #==============================================================================
 # Set max number of nodes (mpi processes)
 #==============================================================================
-NNODES="64"
+NNODES="1024"
 
 # Check whether --with-maxnodes was given.
 if test "${with_maxnodes+set}" = set; then :
