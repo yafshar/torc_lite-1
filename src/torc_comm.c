@@ -19,14 +19,14 @@ pthread_mutex_t commlock = PTHREAD_MUTEX_INITIALIZER;
 
 void enter_comm_cs()
 {
-    if (!thread_safe) _lock_acquire(&commlock);
-    //    _lock_acquire(&commlock);
+    if (!thread_safe)
+        _lock_acquire(&commlock);
 }
 
 void leave_comm_cs()
 {
-    if (!thread_safe) _lock_release(&commlock);
-    //    _lock_release(&commlock);
+    if (!thread_safe)
+        _lock_release(&commlock);
 }
 
 /*************************************************************************/
@@ -36,7 +36,6 @@ void leave_comm_cs()
 #define torc_desc_size sizeof(torc_t)
 
 MPI_Comm comm_out;
-/*#define comm_out MPI_COMM_WORLD*/
 
 struct node_info *node_info;
 
@@ -153,6 +152,7 @@ void _torc_comm_init()
         node_info[i].nworkers = workers[i];    /* SMP */
         /*printf("ni[%d].nworkes = %d\n", i, node_info[i].nworkers);*/
     }
+
     enter_comm_cs();
     MPI_Barrier(comm_out);
     leave_comm_cs();
@@ -229,6 +229,7 @@ void send_descriptor(int node, torc_t *desc, int type)    /* always to a server 
     enter_comm_cs();
     MPI_Send(desc, torc_desc_size, MPI_CHAR, node, MAX_NVPS, comm_out);
     leave_comm_cs();
+
     switch (desc->type) {
         case DIRECT_SYNCHRONOUS_STEALING_REQUEST:
         case TORC_BCAST:
@@ -259,7 +260,6 @@ void send_descriptor(int node, torc_t *desc, int type)    /* always to a server 
 
 void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *desc)
 {
-    int tag;
     desc->sourcenode = torc_node_id();
     desc->sourcevpid = MAX_NVPS;    /* the server thread responds to a stealing request from a worker*/
 
@@ -268,7 +268,7 @@ void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *d
         sourcevpid = MAX_NVPS + 1;    /* response to server's thread direct stealing request */
     }
 
-    tag = sourcevpid + 100;
+    int tag = sourcevpid + 100;
 
     enter_comm_cs();
     MPI_Send(desc, torc_desc_size, MPI_CHAR, sourcenode, tag, comm_out);    /* if sourcevpid == MAX_NVPS ... */
@@ -288,8 +288,9 @@ void receive_arguments(torc_t *work, int tag)
 {
     int typesize;
     char *mem;
-    MPI_Status status;
     int istat;
+
+    MPI_Status status;
 
     for (int i = 0; i < work->narg; i++) {
 #if DBG
@@ -297,7 +298,6 @@ void receive_arguments(torc_t *work, int tag)
 #endif
         if (work->quantity[i] == 0) continue;
         if ((work->quantity[i] > 1)||((work->callway[i] != CALL_BY_COP)&&(work->callway[i] != CALL_BY_VAD))) {
-
 #if 1
             /* yyy */
             work->dtype[i] = _torc_b2mpi_type(work->btype[i]);
@@ -340,9 +340,10 @@ void receive_arguments(torc_t *work, int tag)
 
 int receive_descriptor(int node, torc_t *rte)
 {
-    MPI_Status status;
     int istat;
     int tag = _torc_thread_id();
+
+    MPI_Status status;
 
     tag = tag + 100;
 
@@ -471,14 +472,12 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
     printf("Broadcasting data ...\n"); fflush(0);
 #endif
     memset(&mydata, 0, sizeof(torc_t));
+
     mydata.localarg[0] = (INT64) mynode;
     mydata.localarg[1] = a;
     mydata.localarg[2] = (INT64) count;
-#if 1
-    /* yyy */
     mydata.localarg[3] = (INT64) _torc_mpi2b_type(datatype);
-//    mydata.localarg[3] = datatype;
-#endif
+
     mydata.homenode = mydata.sourcenode = mynode;
 
     for (int node = 0; node < nnodes; node++) {
