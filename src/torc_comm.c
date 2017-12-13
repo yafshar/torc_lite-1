@@ -359,7 +359,12 @@ int receive_descriptor(int node, torc_t *rte)
         istat = MPI_Irecv(rte, torc_desc_size, MPI_CHAR, node, tag, comm_out, &request);
         leave_comm_cs();
         while (1) {
-            if (appl_finished == 1) { rte->type = TORC_NO_WORK; return 1;}    //pthread_exit(0);
+            if (appl_finished == 1)
+            {
+                rte->type = TORC_NO_WORK;
+                return 1;
+            } // pthread_exit(0);
+
             enter_comm_cs();
             istat = MPI_Test(&request, &flag, &status);
             leave_comm_cs();
