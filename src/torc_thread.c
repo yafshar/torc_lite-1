@@ -128,15 +128,15 @@ void _torc_md_end ()
 #if DBG
     printf("worker_thread %d exits\n", my_vp); fflush(0);
 #endif
-    if(my_vp!=0) {
+    if (my_vp != 0) {
         pthread_mutex_lock(&al);
         active_workers--;
         pthread_mutex_unlock(&al);
         pthread_exit(0);
-    }while (__created < kthreads) {
+    }
 
-
-        if (my_vp==0) {
+    while (__created < kthreads) {
+        if (my_vp == 0) {
             while (1)
             {
                 pthread_mutex_lock(&al);
