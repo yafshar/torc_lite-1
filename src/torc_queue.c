@@ -455,7 +455,6 @@ void torc_to_npq_end (int target_node, torc_t *rte)
 }
 
 
-
 void torc_to_prq (int target, torc_t *rte)
 {
     int target_node = global_thread_id_to_node_id(target);

@@ -26,6 +26,7 @@ typedef void (*sched_f)();
 void *_torc_worker (void *arg)
 {
     long vp_id = (long) arg;
+
     torc_t *rte = (torc_t *)calloc (1, sizeof(torc_t));
 
     rte->vp_id = vp_id;
@@ -35,6 +36,7 @@ void *_torc_worker (void *arg)
 #if DBG
     printf("[RTE %p]: NODE %d: WORKER THREAD %ld --> 0x%lx\n", rte, torc_node_id(), rte->vp_id, pthread_self()); fflush(0);
 #endif
+
     pthread_mutex_lock(&__m);
     __created++;
     pthread_mutex_unlock(&__m);

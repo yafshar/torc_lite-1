@@ -238,13 +238,13 @@ void _torc_set_work_routine(torc_t *rte, void (*work)())
 {
     rte->work = work;
     rte->work_id = getfuncnum(work);
-    if (-1 == rte->work_id) {
+    if (rte->work_id == -1) {
 #if 0
         if (get_aslr()) {
             Error1("Internode function %p not registered", work);
-    }
+        }
 #else
-    printf("Internode function %p not registered\n", work);
+        printf("Internode function %p not registered\n", work);
 #endif
     }
 }
@@ -399,8 +399,7 @@ void _torc_cleanup(torc_t *rte)
 #if DBG
         printf("[%d] satisfying deps on local inter-node desc\n", torc_node_id()); fflush(0);
 #endif
-        int i;
-        for (i = 0; i < rte->narg; i++) {
+        for (int i = 0; i < rte->narg; i++) {
             if ((rte->callway[i] == CALL_BY_COP2) && (rte->quantity[i]>1))
                 if ((void *)rte->localarg[i] != NULL)
                     free((void *)rte->localarg[i]);
