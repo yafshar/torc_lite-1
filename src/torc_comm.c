@@ -35,8 +35,6 @@ void leave_comm_cs()
 
 #define torc_desc_size sizeof(torc_t)
 
-MPI_Comm comm_out;
-
 struct node_info *node_info;
 
 /*************************************************************************/
