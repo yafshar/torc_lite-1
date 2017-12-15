@@ -35,9 +35,6 @@ void leave_comm_cs()
 
 #define torc_desc_size sizeof(torc_t)
 
-MPI_Comm comm_out;
-/*#define comm_out MPI_COMM_WORLD*/
-
 struct node_info *node_info;
 
 /*************************************************************************/
@@ -491,32 +488,32 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
 
 /* C types */
 #if 0
-#define T_MPI_CHAR            0
-#define T_MPI_SIGNED_CHAR        1
-#define T_MPI_UNSIGNED_CHAR        2
-#define T_MPI_BYTE            3
-#define T_MPI_WCHAR            4
-#define T_MPI_SHORT            5
-#define T_MPI_UNSIGNED_SHORT        6
-#define T_MPI_INT            7
+#define T_MPI_CHAR                0
+#define T_MPI_SIGNED_CHAR         1
+#define T_MPI_UNSIGNED_CHAR       2
+#define T_MPI_BYTE                3
+#define T_MPI_WCHAR               4
+#define T_MPI_SHORT               5
+#define T_MPI_UNSIGNED_SHORT      6
+#define T_MPI_INT                 7
 #define T_MPI_UNSIGNED            8
-#define T_MPI_LONG            9
-#define T_MPI_UNSIGNED_LONG        10
-#define T_MPI_FLOAT            11
-#define T_MPI_DOUBLE            12
+#define T_MPI_LONG                9
+#define T_MPI_UNSIGNED_LONG      10
+#define T_MPI_FLOAT              11
+#define T_MPI_DOUBLE             12
 #define T_MPI_LONG_DOUBLE        13
-#define T_MPI_LONG_LONG_INT        14
-#define T_MPI_UNSIGNED_LONG_LONG    15
-#define T_MPI_LONG_LONG            14    //MPI_LONG_LONG_INT
+#define T_MPI_LONG_LONG_INT      14
+#define T_MPI_UNSIGNED_LONG_LONG 15
+#define T_MPI_LONG_LONG          14    //MPI_LONG_LONG_INT
 
 /* Fortran types */
 #define T_MPI_COMPLEX            15
-#define T_MPI_DOUBLE_COMPLEX        16
+#define T_MPI_DOUBLE_COMPLEX     16
 #define T_MPI_LOGICAL            17
-#define T_MPI_REAL            18
-#define T_MPI_DOUBLE_PRECISION        19
+#define T_MPI_REAL               18
+#define T_MPI_DOUBLE_PRECISION   19
 #define T_MPI_INTEGER            20
-#define T_MPI_2INTEGER            21
+#define T_MPI_2INTEGER           21
 
 #else
 

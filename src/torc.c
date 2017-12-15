@@ -16,8 +16,6 @@
 
 #define f77fun  1
 
-extern MPI_Comm comm_out;
-
 void torc_waitall()
 {
     _torc_block();

@@ -330,7 +330,7 @@ void _torc_opt (int argc, char *argv[])
     }
 
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_out);
-    MPI_Barrier(MPI_COMM_WORLD);
+    MPI_Barrier(comm_out);
 
     _torc_comm_pre_init();
 }
