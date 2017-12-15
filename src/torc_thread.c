@@ -59,7 +59,7 @@ void *_torc_worker (void *arg)
 
     if (vp_id == 0) {
         enter_comm_cs();
-        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Barrier(comm_out);
         leave_comm_cs();
     }
 
@@ -154,7 +154,7 @@ void _torc_md_end ()
             }
             /* We need a barrier here to avoid potential deadlock problems */
             enter_comm_cs();
-            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Barrier(comm_out);
             leave_comm_cs();
 
             if (torc_num_nodes() > 1) {
@@ -162,7 +162,7 @@ void _torc_md_end ()
             }
             _torc_stats();
 
-            MPI_Barrier(MPI_COMM_WORLD);
+            MPI_Barrier(comm_out);
             MPI_Finalize();
             exit(0);
         }

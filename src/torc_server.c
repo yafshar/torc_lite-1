@@ -43,7 +43,7 @@ int process_a_received_descriptor(torc_t *work/*, int tag1*/)
     if ((tag < 0) || (tag > MAX_NVPS)) {    /* tag == MAX_NVPS occurs with asynchronous stealing */
         //Error1("Invalid message tag %d", tag);
         printf("...Invalid message tag %d from node %d [type=%d]\n", tag, work->sourcenode, work->type); fflush(0);
-        MPI_Abort(MPI_COMM_WORLD, 1);
+        MPI_Abort(comm_out, 1);
         return 1;
     }
 
