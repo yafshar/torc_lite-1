@@ -128,26 +128,26 @@ void _torc_md_end ()
 #if DBG
     printf("worker_thread %d exits\n", my_vp); fflush(0);
 #endif
-    if(my_vp!=0) {
+    if (my_vp != 0) {
         pthread_mutex_lock(&al);
         active_workers--;
         pthread_mutex_unlock(&al);
         pthread_exit(0);
     }
 
-    if (my_vp==0) {
+    if (my_vp == 0) {
         while (1)
         {
-        pthread_mutex_lock(&al);
-        if (active_workers == 1)
-        {
-            pthread_mutex_unlock(&al);
-            break;
-        }
-        else {
-            pthread_mutex_unlock(&al);
-            sched_yield();
-        }
+            pthread_mutex_lock(&al);
+            if (active_workers == 1)
+            {
+                pthread_mutex_unlock(&al);
+                break;
+            }
+            else {
+                pthread_mutex_unlock(&al);
+                sched_yield();
+            }
         }
         /* We need a barrier here to avoid potential deadlock problems */
         enter_comm_cs();
@@ -169,9 +169,6 @@ void _torc_md_end ()
 void thread_sleep(int ms)
 {
     struct timespec req, rem;
-
-//    sched_yield();
-//    return 0;
 
     req.tv_sec = ms / 1000;
     req.tv_nsec = (ms % 1000)*1E6;

@@ -373,17 +373,18 @@ void shutdown_server_thread()
 void terminate_workers()
 {
     torc_t mydata;
-    int node, nnodes = torc_num_nodes();
+    int nnodes = torc_num_nodes();
+    int mynode = torc_node_id();
 
 #if DBG
     printf("Terminating worker threads ...\n");
 #endif
     memset(&mydata, 0, sizeof(torc_t));
-    mydata.localarg[0] = torc_node_id();
-    mydata.homenode = torc_node_id();
+    mydata.localarg[0] = mynode;
+    mydata.homenode = mynode;
 
-    for (node = 0; node < nnodes; node++) {
-        if (node != torc_node_id())
+    for (int node = 0; node < nnodes; node++) {
+        if (node != mynode)
             send_descriptor(node, &mydata, TERMINATE_WORKER_THREADS);
     }
 }
