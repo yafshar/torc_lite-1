@@ -19,14 +19,14 @@ pthread_mutex_t commlock = PTHREAD_MUTEX_INITIALIZER;
 
 void enter_comm_cs()
 {
-    if (!thread_safe)
-        _lock_acquire(&commlock);
+    if (!thread_safe) _lock_acquire(&commlock);
+    //    _lock_acquire(&commlock);
 }
 
 void leave_comm_cs()
 {
-    if (!thread_safe)
-        _lock_release(&commlock);
+    if (!thread_safe) _lock_release(&commlock);
+    //    _lock_release(&commlock);
 }
 
 /*************************************************************************/
@@ -34,6 +34,9 @@ void leave_comm_cs()
 /*************************************************************************/
 
 #define torc_desc_size sizeof(torc_t)
+
+MPI_Comm comm_out;
+/*#define comm_out MPI_COMM_WORLD*/
 
 struct node_info *node_info;
 
@@ -84,6 +87,7 @@ void check_aslr()
     unsigned long vaddr[MAX_NODES];
     unsigned long vaddr_me = (unsigned long) check_aslr;
     int me = torc_node_id();
+    int nproc = torc_num_nodes();
 
     enter_comm_cs();
     MPI_Allgather (&vaddr_me, 1, MPI_UNSIGNED_LONG, vaddr, 1, MPI_UNSIGNED_LONG, comm_out);
@@ -134,6 +138,8 @@ void _torc_comm_init()
     int i;
     int workers[MAX_NODES];
     int workers_me;
+    int me = torc_node_id();
+    int nproc = torc_num_nodes();
 
     workers_me = kthreads;
 
@@ -150,7 +156,6 @@ void _torc_comm_init()
         node_info[i].nworkers = workers[i];    /* SMP */
         /*printf("ni[%d].nworkes = %d\n", i, node_info[i].nworkers);*/
     }
-
     enter_comm_cs();
     MPI_Barrier(comm_out);
     leave_comm_cs();
@@ -206,9 +211,8 @@ void send_arguments(int node, int tag, torc_t *desc)
             leave_comm_cs();
         }
         // By result
-        else /* CALL_BY_RES */ {
+        else /* CALL_BY_RES */
             /*nothing*/;
-        }
     }
 }
 
@@ -227,7 +231,6 @@ void send_descriptor(int node, torc_t *desc, int type)    /* always to a server 
     enter_comm_cs();
     MPI_Send(desc, torc_desc_size, MPI_CHAR, node, MAX_NVPS, comm_out);
     leave_comm_cs();
-
     switch (desc->type) {
         case DIRECT_SYNCHRONOUS_STEALING_REQUEST:
         case TORC_BCAST:
@@ -258,6 +261,7 @@ void send_descriptor(int node, torc_t *desc, int type)    /* always to a server 
 
 void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *desc)
 {
+    int tag;
     desc->sourcenode = torc_node_id();
     desc->sourcevpid = MAX_NVPS;    /* the server thread responds to a stealing request from a worker*/
 
@@ -266,7 +270,7 @@ void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *d
         sourcevpid = MAX_NVPS + 1;    /* response to server's thread direct stealing request */
     }
 
-    int tag = sourcevpid + 100;
+    tag = sourcevpid + 100;
 
     enter_comm_cs();
     MPI_Send(desc, torc_desc_size, MPI_CHAR, sourcenode, tag, comm_out);    /* if sourcevpid == MAX_NVPS ... */
@@ -286,9 +290,8 @@ void receive_arguments(torc_t *work, int tag)
 {
     int typesize;
     char *mem;
-    int istat;
-
     MPI_Status status;
+    int istat;
 
     for (int i = 0; i < work->narg; i++) {
 #if DBG
@@ -296,6 +299,7 @@ void receive_arguments(torc_t *work, int tag)
 #endif
         if (work->quantity[i] == 0) continue;
         if ((work->quantity[i] > 1)||((work->callway[i] != CALL_BY_COP)&&(work->callway[i] != CALL_BY_VAD))) {
+
 #if 1
             /* yyy */
             work->dtype[i] = _torc_b2mpi_type(work->btype[i]);
@@ -338,10 +342,9 @@ void receive_arguments(torc_t *work, int tag)
 
 int receive_descriptor(int node, torc_t *rte)
 {
+    MPI_Status status;
     int istat;
     int tag = _torc_thread_id();
-
-    MPI_Status status;
 
     tag = tag + 100;
 
@@ -358,12 +361,7 @@ int receive_descriptor(int node, torc_t *rte)
         istat = MPI_Irecv(rte, torc_desc_size, MPI_CHAR, node, tag, comm_out, &request);
         leave_comm_cs();
         while (1) {
-            if (appl_finished == 1)
-            {
-                rte->type = TORC_NO_WORK;
-                return 1;
-            } // pthread_exit(0);
-
+            if (appl_finished == 1) { rte->type = TORC_NO_WORK; return 1;}    //pthread_exit(0);
             enter_comm_cs();
             istat = MPI_Test(&request, &flag, &status);
             leave_comm_cs();
@@ -460,26 +458,28 @@ int global_thread_id_to_local_thread_id(int global_thread_id)
 
 void torc_broadcast(void *a, long count, MPI_Datatype datatype)
 {
-    torc_t mydata;
+    long mynode = torc_node_id();
 
-    int mynode = torc_node_id();
-    int nnodes = torc_num_nodes();
-    int tag    = _torc_thread_id();
+    torc_t mydata;
+    int node, nnodes = torc_num_nodes();
+    int tag = _torc_thread_id();
 
 #if DBG
     printf("Broadcasting data ...\n"); fflush(0);
 #endif
     memset(&mydata, 0, sizeof(torc_t));
-
-    mydata.localarg[0] = (INT64) mynode;
+    mydata.localarg[0] = (INT64) torc_node_id();
     mydata.localarg[1] = a;
     mydata.localarg[2] = (INT64) count;
+#if 1
+    /* yyy */
     mydata.localarg[3] = (INT64) _torc_mpi2b_type(datatype);
+//    mydata.localarg[3] = datatype;
+#endif
+    mydata.homenode = mydata.sourcenode = torc_node_id();
 
-    mydata.homenode = mydata.sourcenode = mynode;
-
-    for (int node = 0; node < nnodes; node++) {
-        if (node != mynode) {
+    for (node = 0; node < nnodes; node++) {
+        if (node != torc_node_id()) {
             /* OK. This descriptor is a stack variable */
             send_descriptor(node, &mydata, TORC_BCAST);
             enter_comm_cs();
@@ -489,34 +489,35 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
     }
 }
 
-#if 0
 /* C types */
-#define T_MPI_CHAR                0
-#define T_MPI_SIGNED_CHAR         1
-#define T_MPI_UNSIGNED_CHAR       2
-#define T_MPI_BYTE                3
-#define T_MPI_WCHAR               4
-#define T_MPI_SHORT               5
-#define T_MPI_UNSIGNED_SHORT      6
-#define T_MPI_INT                 7
+#if 0
+#define T_MPI_CHAR            0
+#define T_MPI_SIGNED_CHAR        1
+#define T_MPI_UNSIGNED_CHAR        2
+#define T_MPI_BYTE            3
+#define T_MPI_WCHAR            4
+#define T_MPI_SHORT            5
+#define T_MPI_UNSIGNED_SHORT        6
+#define T_MPI_INT            7
 #define T_MPI_UNSIGNED            8
-#define T_MPI_LONG                9
-#define T_MPI_UNSIGNED_LONG      10
-#define T_MPI_FLOAT              11
-#define T_MPI_DOUBLE             12
+#define T_MPI_LONG            9
+#define T_MPI_UNSIGNED_LONG        10
+#define T_MPI_FLOAT            11
+#define T_MPI_DOUBLE            12
 #define T_MPI_LONG_DOUBLE        13
-#define T_MPI_LONG_LONG_INT      14
-#define T_MPI_UNSIGNED_LONG_LONG 15
-#define T_MPI_LONG_LONG          14
+#define T_MPI_LONG_LONG_INT        14
+#define T_MPI_UNSIGNED_LONG_LONG    15
+#define T_MPI_LONG_LONG            14    //MPI_LONG_LONG_INT
 
 /* Fortran types */
 #define T_MPI_COMPLEX            15
-#define T_MPI_DOUBLE_COMPLEX     16
+#define T_MPI_DOUBLE_COMPLEX        16
 #define T_MPI_LOGICAL            17
-#define T_MPI_REAL               18
-#define T_MPI_DOUBLE_PRECISION   19
+#define T_MPI_REAL            18
+#define T_MPI_DOUBLE_PRECISION        19
 #define T_MPI_INTEGER            20
-#define T_MPI_2INTEGER           21
+#define T_MPI_2INTEGER            21
+
 #else
 
 enum {
@@ -537,7 +538,6 @@ T_MPI_DOUBLE,
 T_MPI_LONG_DOUBLE,
 T_MPI_LONG_LONG_INT,
 T_MPI_UNSIGNED_LONG_LONG,
-T_MPI_LONG_LONG = T_MPI_LONG_LONG_INT,
 
 /* Fortran types */
 T_MPI_COMPLEX,
@@ -547,6 +547,9 @@ T_MPI_REAL,
 T_MPI_DOUBLE_PRECISION,
 T_MPI_INTEGER,
 T_MPI_2INTEGER,
+
+/* C types */
+T_MPI_LONG_LONG = T_MPI_LONG_LONG_INT,
 };
 
 #endif

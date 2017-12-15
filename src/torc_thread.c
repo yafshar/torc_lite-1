@@ -17,16 +17,13 @@
 //void scheduler_loop (int);
 
 pthread_mutex_t __m = PTHREAD_MUTEX_INITIALIZER;
-
-unsigned int __created = 0;
-
+int __created = 0;
 //pthread_barrier_t bar;
 typedef void (*sched_f)();
 
 void *_torc_worker (void *arg)
 {
     long vp_id = (long) arg;
-
     torc_t *rte = (torc_t *)calloc (1, sizeof(torc_t));
 
     rte->vp_id = vp_id;
@@ -36,7 +33,6 @@ void *_torc_worker (void *arg)
 #if DBG
     printf("[RTE %p]: NODE %d: WORKER THREAD %ld --> 0x%lx\n", rte, torc_node_id(), rte->vp_id, pthread_self()); fflush(0);
 #endif
-
     pthread_mutex_lock(&__m);
     __created++;
     pthread_mutex_unlock(&__m);
@@ -59,7 +55,7 @@ void *_torc_worker (void *arg)
 
     if (vp_id == 0) {
         enter_comm_cs();
-        MPI_Barrier(comm_out);
+        MPI_Barrier(MPI_COMM_WORLD);
         leave_comm_cs();
     }
 
@@ -78,8 +74,8 @@ void start_worker(long id)
 
     pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    /**    res = pthread_attr_setstacksize(&attr, 64*1024*1024) **/
-    //    printf("res = %d\n", res);
+/**    res = pthread_attr_setstacksize(&attr, 64*1024*1024) **/
+//    printf("res = %d\n", res);
 
     res = pthread_create(&pth, &attr, _torc_worker, (void *)id);
     if (res == 0)
@@ -102,7 +98,7 @@ static int active_workers;
 void _torc_md_init()
 {
     unsigned int i;
-    //int this_node = torc_node_id();
+    int this_node = torc_node_id();
 
     pthread_key_create(&vp_key, NULL);
     pthread_key_create(&currt_key, NULL);
@@ -111,10 +107,10 @@ void _torc_md_init()
         start_server_thread();
     }
 
-    /*    node_info[this_node].nworkers = 1;*/
+/*    node_info[this_node].nworkers = 1;*/
     //pthread_barrier_init(&bar, NULL, kthreads);
     for (i = 1; i<kthreads; i++) {
-        /*        node_info[this_node].nworkers++;*/
+/*        node_info[this_node].nworkers++;*/
         start_worker((long)i);
     }
 
@@ -124,57 +120,58 @@ void _torc_md_init()
 
 void _torc_md_end ()
 {
+    unsigned int i;
     unsigned int my_vp;
+    int res;
 
     my_vp = _torc_get_vpid();
 #if DBG
     printf("worker_thread %d exits\n", my_vp); fflush(0);
 #endif
-    if (my_vp != 0) {
+    if(my_vp!=0) {
         pthread_mutex_lock(&al);
         active_workers--;
         pthread_mutex_unlock(&al);
         pthread_exit(0);
     }
 
-    while (__created < kthreads) {
-        if (my_vp == 0) {
-            while (1)
-            {
-                pthread_mutex_lock(&al);
-                if (active_workers == 1)
-                {
-                    pthread_mutex_unlock(&al);
-                    break;
-                }
-                else {
-                    pthread_mutex_unlock(&al);
-                    sched_yield();
-                }
-            }
-            /* We need a barrier here to avoid potential deadlock problems */
-            enter_comm_cs();
-            MPI_Barrier(comm_out);
-            leave_comm_cs();
-
-            if (torc_num_nodes() > 1) {
-                shutdown_server_thread();
-            }
-            _torc_stats();
-
-            MPI_Barrier(comm_out);
-            MPI_Finalize();
-            exit(0);
+    if (my_vp==0) {
+        while (1)
+        {
+        pthread_mutex_lock(&al);
+        if (active_workers == 1)
+        {
+            pthread_mutex_unlock(&al);
+            break;
         }
+        else {
+            pthread_mutex_unlock(&al);
+            sched_yield();
+        }
+        }
+        /* We need a barrier here to avoid potential deadlock problems */
+        enter_comm_cs();
+        MPI_Barrier(MPI_COMM_WORLD);
+        leave_comm_cs();
+
+        if (torc_num_nodes() > 1) {
+            shutdown_server_thread();
+        }
+        _torc_stats();
+
+        MPI_Barrier(MPI_COMM_WORLD);
+        MPI_Finalize();
+        exit(0);
     }
 }
+
 
 void thread_sleep(int ms)
 {
     struct timespec req, rem;
 
-    //    sched_yield();
-    //    return 0;
+//    sched_yield();
+//    return 0;
 
     req.tv_sec = ms / 1000;
     req.tv_nsec = (ms % 1000)*1E6;

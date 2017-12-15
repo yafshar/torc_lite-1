@@ -185,6 +185,7 @@ void _torc_execute (void * arg)
 int _torc_block (void)
 {
     torc_t *rte = _torc_self();
+    int self = rte->vp_id;
     int remdeps;
 
     _lock_acquire (&rte->lock);
@@ -209,6 +210,7 @@ int _torc_block (void)
 int _torc_block2 (void)
 {
     torc_t *rte = _torc_self();
+    int self = rte->vp_id;
     int remdeps;
 
     _lock_acquire (&rte->lock);
@@ -238,13 +240,13 @@ void _torc_set_work_routine(torc_t *rte, void (*work)())
 {
     rte->work = work;
     rte->work_id = getfuncnum(work);
-    if (rte->work_id == -1) {
+    if (-1 == rte->work_id) {
 #if 0
         if (get_aslr()) {
             Error1("Internode function %p not registered", work);
-        }
+    }
 #else
-        printf("Internode function %p not registered\n", work);
+    printf("Internode function %p not registered\n", work);
 #endif
     }
 }
@@ -318,7 +320,7 @@ void _torc_opt (int argc, char *argv[])
     MPI_Barrier(MPI_COMM_WORLD);
 
 #if 1
-    int namelen;
+    int size, namelen;
     char name[MPI_MAX_PROCESSOR_NAME];
     MPI_Get_processor_name (name, &namelen);
     printf("TORC_LITE ... rank %d of %d on host %s\n", mpi_rank, mpi_nodes, name);
@@ -328,7 +330,7 @@ void _torc_opt (int argc, char *argv[])
     }
 
     MPI_Comm_dup(MPI_COMM_WORLD, &comm_out);
-    MPI_Barrier(comm_out);
+    MPI_Barrier(MPI_COMM_WORLD);
 
     _torc_comm_pre_init();
 }
@@ -347,7 +349,9 @@ torc_t *get_next_task()
     int self_node = torc_node_id();
     int nnodes = torc_num_nodes();
     torc_t *rte_next = NULL;
+    int vp;
     int node;
+    int self = torc_i_worker_id();
 
     rte_next = torc_i_pq_dequeue ();
     if (rte_next == NULL) {
@@ -399,7 +403,8 @@ void _torc_cleanup(torc_t *rte)
 #if DBG
         printf("[%d] satisfying deps on local inter-node desc\n", torc_node_id()); fflush(0);
 #endif
-        for (int i = 0; i < rte->narg; i++) {
+        int i;
+        for (i = 0; i < rte->narg; i++) {
             if ((rte->callway[i] == CALL_BY_COP2) && (rte->quantity[i]>1))
                 if ((void *)rte->localarg[i] != NULL)
                     free((void *)rte->localarg[i]);
@@ -412,6 +417,8 @@ void _torc_cleanup(torc_t *rte)
 
 int _torc_scheduler_loop (int once)
 {
+    int wait_count;
+    int self = torc_i_worker_id();
     torc_t * rte_next;
 
     while (1) {
@@ -441,6 +448,7 @@ int _torc_scheduler_loop (int once)
 int _torc_scheduler_loop2 (int once)
 {
     int wait_count;
+    int self = torc_i_worker_id();
     torc_t * rte_next;
 
     while (1) {
