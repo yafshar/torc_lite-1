@@ -20,13 +20,11 @@ pthread_mutex_t commlock = PTHREAD_MUTEX_INITIALIZER;
 void enter_comm_cs()
 {
     if (!thread_safe) _lock_acquire(&commlock);
-    //    _lock_acquire(&commlock);
 }
 
 void leave_comm_cs()
 {
     if (!thread_safe) _lock_release(&commlock);
-    //    _lock_release(&commlock);
 }
 
 /*************************************************************************/
@@ -84,7 +82,6 @@ void check_aslr()
     unsigned long vaddr[MAX_NODES];
     unsigned long vaddr_me = (unsigned long) check_aslr;
     int me = torc_node_id();
-    int nproc = torc_num_nodes();
 
     enter_comm_cs();
     MPI_Allgather (&vaddr_me, 1, MPI_UNSIGNED_LONG, vaddr, 1, MPI_UNSIGNED_LONG, comm_out);
@@ -135,8 +132,6 @@ void _torc_comm_init()
     int i;
     int workers[MAX_NODES];
     int workers_me;
-    int me = torc_node_id();
-    int nproc = torc_num_nodes();
 
     workers_me = kthreads;
 
@@ -358,7 +353,12 @@ int receive_descriptor(int node, torc_t *rte)
         istat = MPI_Irecv(rte, torc_desc_size, MPI_CHAR, node, tag, comm_out, &request);
         leave_comm_cs();
         while (1) {
-            if (appl_finished == 1) { rte->type = TORC_NO_WORK; return 1;}    //pthread_exit(0);
+            if (appl_finished == 1)
+            {
+                rte->type = TORC_NO_WORK;
+                return 1;
+            }    //pthread_exit(0);
+
             enter_comm_cs();
             istat = MPI_Test(&request, &flag, &status);
             leave_comm_cs();
@@ -437,7 +437,6 @@ int local_thread_id_to_global_thread_id(int local_thread_id)
     return sum_vp + local_thread_id;
 }
 
-
 int global_thread_id_to_local_thread_id(int global_thread_id)
 {
     int mynode = global_thread_id_to_node_id(global_thread_id);
@@ -458,14 +457,14 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
     long mynode = torc_node_id();
 
     torc_t mydata;
-    int node, nnodes = torc_num_nodes();
+    int nnodes = torc_num_nodes();
     int tag = _torc_thread_id();
 
 #if DBG
     printf("Broadcasting data ...\n"); fflush(0);
 #endif
     memset(&mydata, 0, sizeof(torc_t));
-    mydata.localarg[0] = (INT64) torc_node_id();
+    mydata.localarg[0] = (INT64) mynode;
     mydata.localarg[1] = a;
     mydata.localarg[2] = (INT64) count;
 #if 1
@@ -473,12 +472,13 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
     mydata.localarg[3] = (INT64) _torc_mpi2b_type(datatype);
 //    mydata.localarg[3] = datatype;
 #endif
-    mydata.homenode = mydata.sourcenode = torc_node_id();
+    mydata.homenode = mydata.sourcenode =mynode;
 
-    for (node = 0; node < nnodes; node++) {
-        if (node != torc_node_id()) {
+    for (int node = 0; node < nnodes; node++) {
+        if (node != mynode) {
             /* OK. This descriptor is a stack variable */
             send_descriptor(node, &mydata, TORC_BCAST);
+
             enter_comm_cs();
             MPI_Ssend(a, count, datatype, node, tag, comm_out);
             leave_comm_cs();

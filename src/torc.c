@@ -65,6 +65,7 @@ int torc_scheduler_loop(int once)
 
 #ifdef TORC_STATS
 static int invisible_flag = 0;
+
 void torc_set_invisible(int flag)
 {
     invisible_flag = flag;
@@ -219,7 +220,7 @@ void torc_task(int queue, void (*work)(), int narg, ...)
                 default:
                     Error("typesize not 4 or 8!");
                     break;
-            }
+            }addr[MAX_NODES];
         }
         else if (rte->callway[i] == CALL_BY_COP2) {
             VIRT_ADDR addr = va_arg (ap, VIRT_ADDR);
