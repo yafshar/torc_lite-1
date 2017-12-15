@@ -417,7 +417,6 @@ void _torc_cleanup(torc_t *rte)
 
 int _torc_scheduler_loop (int once)
 {
-    int wait_count;
     int self = torc_i_worker_id();
     torc_t * rte_next;
 
