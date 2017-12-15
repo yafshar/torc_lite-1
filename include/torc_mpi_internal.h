@@ -10,8 +10,6 @@
 #ifndef _torc_mpi_internal_included
 #define _torc_mpi_internal_included
 
-#include <mpi.h>
-
 MPI_Comm comm_out;
 
 void    enter_comm_cs();
@@ -20,10 +18,10 @@ void    leave_comm_cs();
 void   _torc_comm_pre_init();
 void   _torc_comm_init();
 void   _torc_preallocate_memory();
+
 int     global_thread_id_to_node_id(int global_thread_id);
 int     local_thread_id_to_global_thread_id(int local_thread_id);
 int     global_thread_id_to_local_thread_id(int global_thread_id);
-
 int    _torc_total_num_threads();
 
 void   *server_loop(void *arg);
@@ -32,7 +30,9 @@ void    terminate_workers();    /* notify_appl_finished() */
 void    send_descriptor(int, torc_t *, int);
 void    direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *desc);
 void    receive_arguments(torc_t *work, int tag);
+
 int     receive_descriptor(int node, torc_t *work);
+
 torc_t *direct_synchronous_stealing_request(int target_node);
 
 func_t  getfuncptr(int funcpos);
