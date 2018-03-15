@@ -98,8 +98,7 @@ DIST_COMMON = $(srcdir)/Makefile.am $(top_srcdir)/configure \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(install_sh) -d
-CONFIG_HEADER = $(top_builddir)/include/torc_config.h \
-	$(top_builddir)/include/torcf_config.h
+CONFIG_HEADER = $(top_builddir)/include/torc_config.h
 CONFIG_CLEAN_FILES =
 CONFIG_CLEAN_VPATH_FILES =
 AM_V_P = $(am__v_P_@AM_V@)
@@ -162,8 +161,7 @@ am__DIST_COMMON = $(srcdir)/Makefile.in $(top_srcdir)/auxdir/compile \
 	$(top_srcdir)/auxdir/config.guess \
 	$(top_srcdir)/auxdir/config.sub \
 	$(top_srcdir)/auxdir/install-sh $(top_srcdir)/auxdir/missing \
-	$(top_srcdir)/include/torc_config.h.in \
-	$(top_srcdir)/include/torcf_config.h.in AUTHORS COPYING \
+	$(top_srcdir)/include/torc_config.h.in AUTHORS COPYING \
 	ChangeLog INSTALL NEWS README auxdir/compile \
 	auxdir/config.guess auxdir/config.sub auxdir/depcomp \
 	auxdir/install-sh auxdir/missing
@@ -374,16 +372,8 @@ $(top_srcdir)/include/torc_config.h.in:  $(am__configure_deps)
 	rm -f include/stamp-h1
 	touch $@
 
-include/torcf_config.h: include/stamp-h2
-	@test -f $@ || rm -f include/stamp-h2
-	@test -f $@ || $(MAKE) $(AM_MAKEFLAGS) include/stamp-h2
-
-include/stamp-h2: $(top_srcdir)/include/torcf_config.h.in $(top_builddir)/config.status
-	@rm -f include/stamp-h2
-	cd $(top_builddir) && $(SHELL) ./config.status include/torcf_config.h
-
 distclean-hdr:
-	-rm -f include/torc_config.h include/stamp-h1 include/torcf_config.h include/stamp-h2
+	-rm -f include/torc_config.h include/stamp-h1
 
 # This directory's subdirectories are mostly independent; you can cd
 # into them and run 'make' without going through this Makefile.

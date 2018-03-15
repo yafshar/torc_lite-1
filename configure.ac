@@ -31,6 +31,7 @@ AC_CONFIG_HEADERS(include/torc_config.h)
 AM_INIT_AUTOMAKE
 
 AC_PROG_CC(mpicc)
+AC_PROG_CC_STDC
 AC_PROG_F77(mpif90)
 
 AC_LANG_C
