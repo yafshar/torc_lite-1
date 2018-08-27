@@ -21,7 +21,7 @@ static int number_of_functions = 0;
 //! Table of tasks
 static func_t internode_function_table[MAX_TORC_TASKS];
 
-//! Communication mutex object 
+//! Communication mutex object
 pthread_mutex_t comm_m = PTHREAD_MUTEX_INITIALIZER;
 
 /**
@@ -427,7 +427,7 @@ void receive_arguments(torc_t *desc, int tag)
 int receive_descriptor(int node, torc_t *rte)
 {
     MPI_Request request;
-    
+
     int istat;
     int const tag = _torc_thread_id() + 100;
 
@@ -591,45 +591,20 @@ void torc_broadcast(void *a, long count, MPI_Datatype datatype)
     }
 }
 
-enum
-{
-    /* C types */
-    T_MPI_CHAR = 0,
-    T_MPI_SIGNED_CHAR,
-    T_MPI_UNSIGNED_CHAR,
-    T_MPI_BYTE,
-    T_MPI_WCHAR,
-    T_MPI_SHORT,
-    T_MPI_UNSIGNED_SHORT,
-    T_MPI_INT,
-    T_MPI_UNSIGNED,
-    T_MPI_LONG,
-    T_MPI_UNSIGNED_LONG,
-    T_MPI_FLOAT,
-    T_MPI_DOUBLE,
-    T_MPI_LONG_DOUBLE,
-    T_MPI_LONG_LONG_INT,
-    T_MPI_UNSIGNED_LONG_LONG,
-
-    /* Fortran types */
-    T_MPI_COMPLEX,
-    T_MPI_DOUBLE_COMPLEX,
-    T_MPI_LOGICAL,
-    T_MPI_REAL,
-    T_MPI_DOUBLE_PRECISION,
-    T_MPI_INTEGER,
-    T_MPI_2INTEGER,
-
-    /* C types */
-    T_MPI_LONG_LONG = T_MPI_LONG_LONG_INT,
-};
-
 int _torc_mpi2b_type(MPI_Datatype dtype)
 {
-    if (dtype == MPI_INT)
+    if (dtype == MPI_CHAR)
+        return T_MPI_CHAR;
+    else if (dtype == MPI_INT)
         return T_MPI_INT;
     else if (dtype == MPI_LONG)
         return T_MPI_LONG;
+    else if (dtype == MPI_LONG_LONG)
+        return T_MPI_LONG_LONG;
+    else if (dtype == MPI_UNSIGNED)
+        return T_MPI_UNSIGNED;
+    else if (dtype == MPI_UNSIGNED_LONG_LONG)
+        return T_MPI_UNSIGNED_LONG_LONG;
     else if (dtype == MPI_FLOAT)
         return T_MPI_FLOAT;
     else if (dtype == MPI_DOUBLE)
@@ -649,11 +624,23 @@ MPI_Datatype _torc_b2mpi_type(int btype)
 {
     switch (btype)
     {
+    case T_MPI_CHAR:
+        return MPI_CHAR;
+        break;
     case T_MPI_INT:
         return MPI_INT;
         break;
     case T_MPI_LONG:
         return MPI_LONG;
+        break;
+    case T_MPI_LONG_LONG:
+        return MPI_LONG_LONG;
+        break;
+    case T_MPI_UNSIGNED:
+        return MPI_UNSIGNED;
+        break;
+    case T_MPI_UNSIGNED_LONG_LONG:
+        return MPI_UNSIGNED_LONG_LONG;
         break;
     case T_MPI_FLOAT:
         return MPI_FLOAT;
