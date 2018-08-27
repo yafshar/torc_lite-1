@@ -8,458 +8,563 @@
  */
 #include <torc_internal.h>
 #include <torc.h>
-#include <stdlib.h>
-#include <string.h>
 
-/* Initialization of ready queues */
-void rq_init ()
+/**
+ * @brief Initilize all the ready ques
+ * 
+ */
+void rq_init()
 {
     _queue_init(&reuse_q);
+
     _queue_init(&private_grq);
-    for (int i = 0; i < 10 ; i++)
+
+    for (int i = 0; i < 10; i++)
+    {
         _queue_init(&public_grq[i]);
+    }
 }
 
-/* Reuse of descriptors */
-static void torc_to_i_reuseq (torc_t *rte)
+// /**
+//  * @brief Adds the descriptor desc at the head of the queue reuse_q
+//  * 
+//  * @param desc 
+//  */
+// static void torc_to_i_reuseq(torc_t *desc)
+// {
+//     _enqueue_head(&reuse_q, desc);
+// }
+
+/**
+ * @brief Adds the descriptor desc at the tail of the queue reuse_q
+ * 
+ * @param desc 
+ */
+static void torc_to_i_reuseq_end(torc_t *desc)
 {
-    _enqueue_head(&reuse_q, rte);
+    _enqueue_tail(&reuse_q, desc);
 }
 
-static void torc_to_i_reuseq_end (torc_t *rte)
+/**
+ * @brief Double-ended queue
+ * 
+ * @return torc_t* 
+ */
+static torc_t *torc_i_reuseq_dequeue()
 {
-    _enqueue_tail(&reuse_q, rte);
-}
+    torc_t *desc = NULL;
 
-static torc_t *torc_i_reuseq_dequeue ()
-{
-    torc_t *rte = NULL;
+    _dequeue(&reuse_q, &desc);
 
-    _dequeue(&reuse_q, &rte);
-
-    return rte;
+    return desc;
 }
 
 torc_t *_torc_get_reused_desc()
 {
-    torc_t *rte = NULL;
+    torc_t *desc = NULL;
     char *ptr;
     static unsigned long offset = sizeof(_lock_t) /*+ 16*sizeof(void *)*/;
     static unsigned long torc_size = sizeof(torc_t);
 
-    /*    rte = calloc(1, sizeof(torc_t));*/
-    /*    return rte;*/
-
-    rte = torc_i_reuseq_dequeue();
-    if (rte != NULL) {
-        ptr = (char *) rte;
+    desc = torc_i_reuseq_dequeue();
+    if (desc != NULL)
+    {
+        ptr = (char *)desc;
         ptr += offset;
         memset(ptr, 0, torc_size - offset);
     }
-    else {
-        rte = calloc(1, sizeof(torc_t));
+    else
+    {
+        desc = calloc(1, sizeof(torc_t));
     }
 
-    return rte;
+    return desc;
 }
 
-void _torc_put_reused_desc(torc_t *rte)
+void _torc_put_reused_desc(torc_t *desc)
 {
-    /*    _lock_destroy(&rte->lock);*/
-    /*    free(rte);*/
-    /*    return;*/
-
-    torc_to_i_reuseq_end(rte);
+    torc_to_i_reuseq_end(desc);
 }
 
-
-/*********************************************************************/
 /************************* Intra-node Queues *************************/
-/*********************************************************************/
 
-/*
- * Private global queue
+/**
+ * @brief Adds the descriptor desc at the head of the private global queue private_grq
+ * 
+ * @param desc 
  */
-
-void torc_to_i_pq (torc_t *rte)
+void torc_to_i_pq(torc_t *desc)
 {
-    _enqueue_head(&private_grq, rte);
+    _enqueue_head(&private_grq, desc);
 }
 
-
-void torc_to_i_pq_end (torc_t *rte)
-{
-    _enqueue_tail(&private_grq, rte);
-}
-
-torc_t *torc_i_pq_dequeue ()
-{
-    torc_t *rte = NULL;
-
-    _dequeue(&private_grq, &rte);
-    return rte;
-}
-
-
-/*
- * Public global queue
+/**
+ * @brief Adds the descriptor desc at the tail of the private global queue private_grq
+ * 
+ * @param desc 
  */
-
-void torc_to_i_rq (torc_t *rte)
+void torc_to_i_pq_end(torc_t *desc)
 {
-    int lvl = (rte->level <= 1)? 0: rte->level-1;
-    if (lvl >= 10) lvl = 9;
-    _enqueue_head(&public_grq[lvl], rte);
+    _enqueue_tail(&private_grq, desc);
 }
 
-
-void torc_to_i_rq_end (torc_t *rte)
+/**
+ * @brief Get the descriptor of a double-eneded queue of the private global queue
+ * 
+ * @return torc_t* 
+ */
+torc_t *torc_i_pq_dequeue()
 {
-    int lvl = (rte->level <= 1)? 0: rte->level-1;
-    if (lvl >= 10) lvl = 9;
-    _enqueue_tail(&public_grq[lvl], rte);
+    torc_t *desc = NULL;
+
+    _dequeue(&private_grq, &desc);
+
+    return desc;
 }
 
-
-torc_t *torc_i_rq_dequeue (int lvl)
+/**
+ * @brief Adds the descriptor desc at the head of the public global queue public_grq
+ * 
+ * @param desc 
+ */
+void torc_to_i_rq(torc_t *desc)
 {
-    torc_t *rte = NULL;
+    int lvl = (desc->level <= 1) ? 0 : desc->level - 1;
+    if (lvl >= 10)
+    {
+        lvl = 9;
+    }
 
-    _dequeue(&public_grq[lvl], &rte);
-    return rte;
+    _enqueue_head(&public_grq[lvl], desc);
 }
 
+/**
+ * @brief Adds the descriptor desc at the tail of the public global queue public_grq
+ * 
+ * @param desc 
+ */
+void torc_to_i_rq_end(torc_t *desc)
+{
+    int lvl = (desc->level <= 1) ? 0 : desc->level - 1;
+    if (lvl >= 10)
+    {
+        lvl = 9;
+    }
 
-/*********************************************************************/
+    _enqueue_tail(&public_grq[lvl], desc);
+}
+
+/**
+ * @brief Get the descriptor of a double-eneded queue of the public global queue
+ * 
+ * @return torc_t* 
+ */
+torc_t *torc_i_rq_dequeue(int lvl)
+{
+    torc_t *desc = NULL;
+
+    _dequeue(&public_grq[lvl], &desc);
+
+    return desc;
+}
+
 /************************* Inter-node Queues *************************/
-/*********************************************************************/
 
-/*
- * Public global queue
+/**
+ * @brief Copy local data arguments to the temporary space (Read the arguments) 
+ * 
+ * @param desc 
  */
-
-static void read_arguments(torc_t *rte)
+static void read_arguments(torc_t *desc)
 {
-    for (int i = 0; i < rte->narg; i++)
-        rte->temparg[i] = rte->localarg[i];
+    for (int i = 0; i < desc->narg; i++)
+    {
+        desc->temparg[i] = desc->localarg[i];
+    }
 }
 
-void torc_to_nrq (int target_node, torc_t *rte)
+void torc_to_nrq(int target_node, torc_t *desc)
 {
-#if DBG
+#if DEBUG
     printf("rte_to_lrq_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "inter-node gq");
 #endif
 
-    rte->insert_in_front = 1;
-    rte->inter_node = 1;    /* alternatively, it can be set only when it goes outside */
-    rte->target_queue = -1;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
+    desc->insert_in_front = 1;
+    //! alternatively, it can be set only when it goes outside
+    desc->inter_node = 1;
+    desc->target_queue = -1;
+
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
 #endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
     }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
 #endif
-        read_arguments(rte);
-        torc_to_i_rq(rte);
+        //! Read the arguments 
+        read_arguments(desc);
+
+        //! Adds the descriptor desc at the head of the public global queue public_grq
+        torc_to_i_rq(desc);
     }
 }
 
-void torc_to_nrq_end (int target_node, torc_t *rte)
+void torc_to_nrq_end(int target_node, torc_t *desc)
 {
-#if DBG
+#if DEBUG
     printf("rte_to_lrq_end_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "inter-node gq");
 #endif
 
-    rte->inter_node = 1;    /* alternatively, it can be set only when it goes outside */
-    rte->target_queue = -1;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
+    //! alternatively, it can be set only when it goes outside
+    desc->inter_node = 1;
+    desc->target_queue = -1;
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
 #endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
     }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
 #endif
-        read_arguments(rte);
-        torc_to_i_rq_end(rte);
+        //! Read the arguments 
+        read_arguments(desc);
+
+        //! Adds the descriptor desc at the tail of the public global queue public_grq
+        torc_to_i_rq_end(desc);
     }
 }
 
-
-/*
- * Public global queue - general version
+/**
+ * @brief ublic global queue - general version
+ * 
+ * @param desc 
  */
-
-void torc_to_rq (torc_t *rte)
+void torc_to_rq(torc_t *desc)
 {
     static int initialized = 0;
+
     static int target_node;
+
     int total_nodes = torc_num_nodes();
 
-    if (initialized == 0) {
-        initialized = 1;
-        target_node = torc_node_id();    /* for second level ? */
-    }
-
-    /*    target_node = (target_node+1) % total_nodes;*/
-#if DBG
-    printf("rte_to_rq : target_node = %d\n", target_node);
-#endif
-    rte->insert_in_front = 1;
-    rte->insert_private = 0;
-    rte->inter_node = 1;
-    rte->target_queue = -1;    /* global */
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        read_arguments(rte);
-        torc_to_i_rq(rte);
-
-    }
-    target_node = (target_node+1) % total_nodes;
-}
-
-void torc_to_rq_end__ (torc_t *rte)    /* node version */
-{
-    static int initialized = 0;
-    static int target_node;
-    int total_nodes = torc_num_nodes();
-
-    if (initialized == 0) {
+    if (!initialized)
+    {
         initialized = 1;
         target_node = torc_node_id();
     }
 
-    /*    target_node = (target_node+1) % total_nodes;*/
-#if DBG
+#if DEBUG
+    printf("rte_to_rq : target_node = %d\n", target_node);
+#endif
+
+    desc->insert_in_front = 1;
+    desc->insert_private = 0;
+    desc->inter_node = 1;
+    //! Global
+    desc->target_queue = -1;
+
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+#endif
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
+    }
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
+#endif
+        //! Read the arguments 
+        read_arguments(desc);
+
+        torc_to_i_rq(desc);
+    }
+
+    target_node = (target_node + 1) % total_nodes;
+}
+
+/**
+ * @brief node version
+ * 
+ * @param desc 
+ */
+void torc_to_rq_end__(torc_t *desc)
+{
+    static int initialized = 0;
+
+    static int target_node;
+
+    int total_nodes = torc_num_nodes();
+
+    if (!initialized)
+    {
+        initialized = 1;
+        target_node = torc_node_id();
+    }
+
+#if DEBUG
     printf("rte_to_rq_end: target_node = %d\n", target_node);
 #endif
 
-    rte->insert_private = 0;
-    rte->inter_node = 1;
-    rte->target_queue = -1;    /* global */
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        /* read the arguments */
-        for (int i = 0; i < rte->narg; i++)
-            rte->temparg[i] = rte->localarg[i];
+    desc->insert_private = 0;
+    desc->inter_node = 1;
+    //! global
+    desc->target_queue = -1;
 
-        torc_to_i_rq_end(rte);
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+#endif
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
     }
-    target_node = (target_node+1) % total_nodes;
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
+#endif
+        //! Read the arguments 
+        read_arguments(desc);
+
+        torc_to_i_rq_end(desc);
+    }
+    target_node = (target_node + 1) % total_nodes;
 }
 
-/* worker version */
-void torc_to_rq_end (torc_t *rte)
+/**
+ * @brief worker version
+ * 
+ * @param desc 
+ */
+void torc_to_rq_end(torc_t *desc)
 {
     static int initialized = 0;
-    static int target_worker /* = 0 */;
-    int total_workers = torc_num_workers();
-    int target_node, target_queue;
 
-    if (initialized == 0) {
+    static int target_worker;
+
+    int total_workers = torc_num_workers();
+
+    if (!initialized)
+    {
         initialized = 1;
+
         target_worker = torc_worker_id();
     }
 
-    if (torc_num_nodes() == 1) {
-        torc_to_i_rq_end(rte);
+    if (torc_num_nodes() == 1)
+    {
+        torc_to_i_rq_end(desc);
+
         return;
     }
 
-    target_node  = global_thread_id_to_node_id(target_worker);
-    target_queue = global_thread_id_to_local_thread_id(target_worker);
+    int target_node = global_thread_id_to_node_id(target_worker);
+    int target_queue = global_thread_id_to_local_thread_id(target_worker);
 
-    /*    target_node = (target_node+1) % total_nodes;*/
-#if DBG
+#if DEBUG
     printf("rte_to_rq_end: target_node = %d\n", target_node);
 #endif
 
-    rte->insert_private = 0;
-    rte->inter_node = 1;
-    rte->target_queue = target_queue;    /* global */
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
+    desc->insert_private = 0;
+    desc->inter_node = 1;
+    //! Global
+    desc->target_queue = target_queue;
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
 #endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        /* read the arguments */
-        for (int i = 0; i < rte->narg; i++)
-            rte->temparg[i] = rte->localarg[i];
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
 
-        torc_to_i_rq_end(rte);
+        _torc_put_reused_desc(desc);
     }
-    target_worker = (target_worker+1) % total_workers;
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
+#endif
+        //! Read the arguments
+        read_arguments(desc);
+
+        torc_to_i_rq_end(desc);
+    }
+
+    target_worker = (target_worker + 1) % total_workers;
 }
 
-
-/*
- * Public local (worker) queue
+/**
+ * @brief Public local (worker) queue
+ * 
+ * @param target 
+ * @param desc 
  */
-
-void torc_to_lrq_end (int target, torc_t *rte)
+void torc_to_lrq_end(int target, torc_t *desc)
 {
-    int target_node, target_queue;
+    if (torc_num_nodes() == 1)
+    {
+        torc_to_i_rq_end(desc);
 
-    if (torc_num_nodes() == 1) {
-        torc_to_i_rq_end(rte);
         return;
     }
 
-    target_node  = global_thread_id_to_node_id(target);
-    target_queue = global_thread_id_to_local_thread_id(target);
-
-#if DBG
-    printf("rte_to_lrq_end: target = %d, target_node = %d, target_queue = %d\n", target, target_node, target_queue);
-#endif
-    rte->inter_node = 1;
-    rte->target_queue = target_queue;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        read_arguments(rte);
-        torc_to_i_rq_end(rte);
-    }
-}
-
-
-void torc_to_lrq (int target, torc_t *rte)
-{
-    int target_node, target_queue;
-
-    if (torc_num_nodes() == 1) {
-        torc_to_i_rq(rte);
-        return;
-    }
-
-    target_node  = global_thread_id_to_node_id(target);
-    target_queue = global_thread_id_to_local_thread_id(target);
-
-#if DBG
-    printf("rte_to_lrq_end: target = %d, target_node = %d, target_queue = %d\n", target, target_node, target_queue);
-#endif
-    rte->inter_node = 1;
-    rte->target_queue = target_queue;
-    rte->insert_in_front = 1;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        read_arguments(rte);
-        torc_to_i_rq(rte);
-    }
-}
-
-
-/*
- * Private global queue
- */
-
-void torc_to_npq (int target_node, torc_t *rte)
-{
-#if DBG
-    printf("rte_to_prq_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "intra-node gq");
-#endif
-
-    rte->insert_private = 1;
-    rte->insert_in_front = 1;
-    rte->inter_node = 1;    /* alternatively, it can be set only when it goes outside */
-    /*    if (rte->target_queue < 0)*/
-    rte->target_queue = -1;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        read_arguments(rte);
-        torc_to_i_pq(rte);
-    }
-}
-
-void torc_to_npq_end (int target_node, torc_t *rte)
-{
-#if DBG
-    printf("rte_to_prq_end_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "intra-node gq");
-#endif
-
-    rte->insert_private = 1;
-    rte->inter_node = 1;    /* alternatively, it can be set only when it goes outside */
-    /*    if (rte->target_queue < 0)*/
-    rte->target_queue = -1;
-    if (torc_node_id() != target_node) {
-#if DBG
-        printf("enqueing remotely: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        send_descriptor(target_node, rte, TORC_NORMAL_ENQUEUE);
-        _torc_put_reused_desc(rte);
-    }
-    else {
-#if DBG
-        printf("enqueing locally: rte->rte_desc = 0x%lx\n", rte);
-#endif
-        read_arguments(rte);
-        torc_to_i_pq_end(rte);
-    }
-}
-
-
-
-void torc_to_prq (int target, torc_t *rte)
-{
     int target_node = global_thread_id_to_node_id(target);
+    int target_queue = global_thread_id_to_local_thread_id(target);
 
-    torc_to_npq (target_node, rte);
+#if DEBUG
+    printf("rte_to_lrq_end: target = %d, target_node = %d, target_queue = %d\n", target, target_node, target_queue);
+#endif
+    desc->inter_node = 1;
+    desc->target_queue = target_queue;
+
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+#endif
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
+    }
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
+#endif
+        read_arguments(desc);
+
+        torc_to_i_rq_end(desc);
+    }
 }
 
+void torc_to_lrq(int target, torc_t *desc)
+{
+    if (torc_num_nodes() == 1)
+    {
+        torc_to_i_rq(desc);
+
+        return;
+    }
+
+    int target_node = global_thread_id_to_node_id(target);
+    int target_queue = global_thread_id_to_local_thread_id(target);
+
+#if DEBUG
+    printf("rte_to_lrq_end: target = %d, target_node = %d, target_queue = %d\n", target, target_node, target_queue);
+#endif
+    desc->inter_node = 1;
+    desc->target_queue = target_queue;
+    desc->insert_in_front = 1;
+
+    if (torc_node_id() != target_node)
+    {
+#if DEBUG
+        printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+#endif
+        send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+        _torc_put_reused_desc(desc);
+    }
+    else
+    {
+#if DEBUG
+        printf("enqueing locally: desc->rte_desc = %p\n", desc);
+#endif
+        read_arguments(desc);
+        
+        torc_to_i_rq(desc);
+    }
+}
+
+// /**
+//  * @brief Private global queue
+//  * 
+//  * @param target_node 
+//  * @param desc 
+//  */
+// void torc_to_npq(int target_node, torc_t *desc)
+// {
+// #if DEBUG
+//     printf("rte_to_prq_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "intra-node gq");
+// #endif
+
+//     desc->insert_private = 1;
+//     desc->insert_in_front = 1;
+//     //! alternatively, it can be set only when it goes outside
+//     desc->inter_node = 1; 
+//     desc->target_queue = -1;
+
+//     if (torc_node_id() != target_node)
+//     {
+// #if DEBUG
+//         printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+// #endif
+//         send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+//         _torc_put_reused_desc(desc);
+//     }
+//     else
+//     {
+// #if DEBUG
+//         printf("enqueing locally: desc->rte_desc = %p\n", desc);
+// #endif
+//         read_arguments(desc);
+
+//         torc_to_i_pq(desc);
+//     }
+// }
+
+// void torc_to_npq_end(int target_node, torc_t *desc)
+// {
+// #if DEBUG
+//     printf("rte_to_prq_end_2: target = %d, target_node = %d, target_queue = %s\n", -1, target_node, "intra-node gq");
+// #endif
+
+//     desc->insert_private = 1;
+//     //! alternatively, it can be set only when it goes outside
+//     desc->inter_node = 1; 
+//     desc->target_queue = -1;
+
+//     if (torc_node_id() != target_node)
+//     {
+// #if DEBUG
+//         printf("enqueing remotely: desc->rte_desc = %p\n", desc);
+// #endif
+//         send_descriptor(target_node, desc, TORC_NORMAL_ENQUEUE);
+
+//         _torc_put_reused_desc(desc);
+//     }
+//     else
+//     {
+// #if DEBUG
+//         printf("enqueing locally: desc->rte_desc = %p\n", desc);
+// #endif
+//         read_arguments(desc);
+
+//         torc_to_i_pq_end(desc);
+//     }
+// }
+
+// void torc_to_prq(int target, torc_t *desc)
+// {
+//     int target_node = global_thread_id_to_node_id(target);
+
+//     torc_to_npq(target_node, desc);
+// }
