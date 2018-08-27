@@ -8,164 +8,134 @@
  */
 #include <torc_internal.h>
 #include <torc.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
-typedef void (*sched_f)();
+
+/* External declaration from lwrte.c */
+//void scheduler_loop (int);
 
 pthread_mutex_t __m = PTHREAD_MUTEX_INITIALIZER;
-pthread_mutex_t al = PTHREAD_MUTEX_INITIALIZER;
+int __created = 0;
+//pthread_barrier_t bar;
+typedef void (*sched_f)();
 
-unsigned int __created = 0;
-
-static int active_workers;
-
-void *_torc_worker(void *arg)
+void *_torc_worker (void *arg)
 {
-    long vp_id = (long)arg;
+    long vp_id = (long) arg;
+    torc_t *rte = (torc_t *)calloc (1, sizeof(torc_t));
 
-    torc_t *desc = (torc_t *)calloc(1, sizeof(torc_t));
+    rte->vp_id = vp_id;
+    _lock_init (&rte->lock);
+    rte->work = (sched_f) _torc_scheduler_loop;
 
-    desc->vp_id = vp_id;
-
-    _lock_init(&desc->lock);
-
-    desc->work = (sched_f)_torc_scheduler_loop;
-
-#if DEBUG
-    printf("[RTE %p]: NODE %d: WORKER THREAD %ld --> 0x%lx\n", desc, torc_node_id(), desc->vp_id, pthread_self());
-    fflush(0);
+#if DBG
+    printf("[RTE %p]: NODE %d: WORKER THREAD %ld --> 0x%lx\n", rte, torc_node_id(), rte->vp_id, pthread_self()); fflush(0);
 #endif
+    pthread_mutex_lock(&__m);
+    __created++;
+    pthread_mutex_unlock(&__m);
 
-    {
-        pthread_mutex_lock(&__m);
-        __created++;
-        pthread_mutex_unlock(&__m);
-    }
-
-    worker_thread[desc->vp_id] = pthread_self();
+    worker_thread[rte->vp_id] = pthread_self();
 
     _torc_set_vpid(vp_id);
-
-    _torc_set_currt(desc);
+    _torc_set_currt(rte);
 
     int repeat;
-
-    while (__created < kthreads)
-    {
-        {
-            pthread_mutex_lock(&__m);
-            repeat = (__created < kthreads);
-            pthread_mutex_unlock(&__m);
-        }
-
+    while (__created < kthreads) {
+        pthread_mutex_lock(&__m);
+        repeat = (__created < kthreads);
+        pthread_mutex_unlock(&__m);
         if (repeat)
-        {
-            thread_sleep(10);
-        }
+            thread_sleep(10);    //sched_yield();
         else
-        {
             break;
-        }
     }
 
-    if (vp_id == 0)
-    {
+    if (vp_id == 0) {
         enter_comm_cs();
         MPI_Barrier(comm_out);
         leave_comm_cs();
     }
 
-    if ((torc_node_id() == 0) && (vp_id == 0))
-    {
-        return 0;
-    }
-
-    _torc_scheduler_loop(0); /* never returns */
+    if ((torc_node_id() == 0) && (vp_id == 0)) return 0;
+    _torc_scheduler_loop(0);    /* never returns */
 
     return 0;
 }
 
-/**
- * @brief Initilize detached workers on each thread to execute independently from the thread handle 
- * 
- * @param id Thread ID
- */
 void start_worker(long id)
 {
+    int res;
     pthread_t pth;
     pthread_attr_t attr;
+    pthread_attr_init(&attr);
 
-    {
-        pthread_attr_init(&attr);
-        pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
-        pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    }
+    pthread_attr_setscope(&attr, PTHREAD_SCOPE_SYSTEM);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+/**    res = pthread_attr_setstacksize(&attr, 64*1024*1024) **/
+//    printf("res = %d\n", res);
 
-    int res = pthread_create(&pth, &attr, _torc_worker, (void *)id);
-
+    res = pthread_create(&pth, &attr, _torc_worker, (void *)id);
     if (res == 0)
-    {
         worker_thread[id] = pth;
-    }
     else
-    {
         Error("pthread_create failed");
-    }
 }
 
-// void shutdown_worker(int id)
-// {
-//     int const this_node = torc_node_id();
+void shutdown_worker(int id)
+{
+    int this_node = torc_node_id();
 
-//     node_info[this_node].nworkers--;
-// }
+    node_info[this_node].nworkers--;
+}
 
-/**
- * @brief Initilize the workers
- * 
- */
+pthread_mutex_t al = PTHREAD_MUTEX_INITIALIZER;
+static int active_workers;
+
+
 void _torc_md_init()
 {
+    unsigned int i;
+    int this_node = torc_node_id();
+
     pthread_key_create(&vp_key, NULL);
     pthread_key_create(&currt_key, NULL);
 
-    if (torc_num_nodes() > 1)
-    {
+    if (torc_num_nodes() > 1) {
         start_server_thread();
     }
 
-    //! For each thread create a detached worker
-    for (unsigned int i = 1; i < kthreads; i++)
-    {
+/*    node_info[this_node].nworkers = 1;*/
+    //pthread_barrier_init(&bar, NULL, kthreads);
+    for (i = 1; i<kthreads; i++) {
+/*        node_info[this_node].nworkers++;*/
         start_worker((long)i);
     }
 
-    active_workers = (int)kthreads;
+    active_workers = kthreads;
 }
 
-/**
- * @brief Stop the workers
- * 
- */
-void _torc_md_end()
+
+void _torc_md_end ()
 {
-    unsigned int my_vp = _torc_get_vpid();
+    unsigned int i;
+    unsigned int my_vp;
+    int res;
 
-#if DEBUG
-    printf("worker_thread %ud exits\n", my_vp);
-    fflush(0);
+    my_vp = _torc_get_vpid();
+#if DBG
+    printf("worker_thread %d exits\n", my_vp); fflush(0);
 #endif
-
-    if (my_vp)
-    {
+    if (my_vp != 0) {
         pthread_mutex_lock(&al);
         active_workers--;
         pthread_mutex_unlock(&al);
-
         pthread_exit(0);
     }
 
-    if (!my_vp)
-    {
+    if (my_vp == 0) {
         while (1)
         {
             pthread_mutex_lock(&al);
@@ -174,23 +144,19 @@ void _torc_md_end()
                 pthread_mutex_unlock(&al);
                 break;
             }
-            else
-            {
+            else {
                 pthread_mutex_unlock(&al);
                 sched_yield();
             }
         }
-
-        //! We need a barrier here to avoid potential deadlock problems
+        /* We need a barrier here to avoid potential deadlock problems */
         enter_comm_cs();
         MPI_Barrier(comm_out);
         leave_comm_cs();
 
-        if (torc_num_nodes() > 1)
-        {
+        if (torc_num_nodes() > 1) {
             shutdown_server_thread();
         }
-
         _torc_stats();
 
         MPI_Barrier(comm_out);
@@ -199,14 +165,19 @@ void _torc_md_end()
     }
 }
 
+
 void thread_sleep(int ms)
 {
     struct timespec req, rem;
 
     req.tv_sec = ms / 1000;
-    req.tv_nsec = (ms % 1000) * 1E6;
-
+    req.tv_nsec = (ms % 1000)*1E6;
     nanosleep(&req, &rem);
+}
+
+void F77_FUNC_(torc_sleep, TORC_SLEEP)(int *ms)
+{
+    thread_sleep(*ms);
 }
 
 void _torc_set_vpid(long vp)
@@ -216,7 +187,10 @@ void _torc_set_vpid(long vp)
 
 long _torc_get_vpid()
 {
-    return (long)pthread_getspecific(vp_key);
+    long vp;
+    vp = (long) pthread_getspecific(vp_key);
+
+    return vp;
 }
 
 void _torc_set_currt(torc_t *task)
@@ -226,10 +200,8 @@ void _torc_set_currt(torc_t *task)
 
 torc_t *_torc_get_currt()
 {
-    return (torc_t *)pthread_getspecific(currt_key);
-}
+    torc_t *task;
+    task = (torc_t *) pthread_getspecific(currt_key);
 
-void F77_FUNC_(torc_sleep, TORC_SLEEP)(int *ms)
-{
-    thread_sleep(*ms);
+    return task;
 }

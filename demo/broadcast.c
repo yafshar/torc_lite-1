@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <unistd.h>
 #include <torc.h>
+#include <unistd.h>
 
 int times = 0;
 
@@ -38,8 +38,7 @@ int main(int argc, char *argv[])
 
     gi = 5;
     gd = 5.0;
-    for (i = 0; i < 16; i++)
-    {
+    for (i = 0; i < 16; i++) {
         gti[i] = 100;
         gtd[i] = 100.0;
     }
@@ -49,20 +48,18 @@ int main(int argc, char *argv[])
 
     gi = 23;
     gd = 23.0;
-    for (i = 0; i < 16; i++)
-    {
+    for (i = 0; i < 16; i++) {
         gti[i] = torc_worker_id() + 1000;
         gtd[i] = gti[i] + 1;
     }
 
-    torc_broadcast(&gi, 1, MPI_INT);
-    torc_broadcast(&gd, 1, MPI_DOUBLE);
+    torc_broadcast(&gi,   1, MPI_INT);
+    torc_broadcast(&gd,   1, MPI_DOUBLE);
     torc_broadcast(&gti, 16, MPI_INT);
     torc_broadcast(&gtd, 16, MPI_DOUBLE);
 
     ntasks = torc_num_workers();
-    for (i = 0; i < ntasks; i++)
-    {
+    for (i=0; i<ntasks; i++) {
         torc_create(-1, slave, 0);
     }
     torc_waitall();

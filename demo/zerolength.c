@@ -21,11 +21,10 @@ void slave(double *pin, double *out, double *x, int *pn)
 
     if (n > 0)
         for (int j = 0; j < n; j++)
-            x[j] = (double)torc_worker_id();
+            x[j] = (double) torc_worker_id();
 
     *out = sqrt(in);
-    printf("B slave in = %f, *out = %f, [x = %p, n = %d]\n", in, *out, x, n);
-    fflush(0);
+    printf("B slave in = %f, *out = %f, [x = %p, n = %d]\n", in, *out, x, n); fflush(0);
 }
 
 int main(int argc, char *argv[])
@@ -39,8 +38,7 @@ int main(int argc, char *argv[])
 
     int sz = 0;
 
-    if (argc == 2)
-        sz = atoi(argv[1]);
+    if (argc == 2) sz = atoi(argv[1]);
 
     srand48(33);
 
@@ -49,40 +47,39 @@ int main(int argc, char *argv[])
     printf("address(slave)=%p\n", slave);
     torc_init(argc, argv, MODE_MS);
 
-    result = (double *)malloc(cnt * sizeof(double));
-    ii = (double *)malloc(cnt * sizeof(double));
+    result = (double *)malloc(cnt*sizeof(double));
+    ii = (double *)malloc(cnt*sizeof(double));
 
     double *x[cnt];
 
     //torc_enable_stealing();
     t0 = torc_gettime();
-    for (i = 0; i < cnt; i++)
-    {
-        di = (double)(i + 1);
+    for (i=0; i<cnt; i++) {
+        di = (double) (i+1);
         result[i] = 100 + i;
         if (sz == 0)
             x[i] = NULL;
         else
-            x[i] = malloc(sz * sizeof(double));
+            x[i] = malloc(sz*sizeof(double));
 
         torc_create(-1, slave, 4,
-                    1, MPI_DOUBLE, CALL_BY_COP,
-                    1, MPI_DOUBLE, CALL_BY_RES,
+                     1, MPI_DOUBLE, CALL_BY_COP,
+                     1, MPI_DOUBLE, CALL_BY_RES,
                     sz, MPI_DOUBLE, CALL_BY_RES,
-                    1, MPI_INT, CALL_BY_COP,
-                    &di, &result[i], x[i], &sz);
+                     1, MPI_INT,    CALL_BY_COP,
+                     &di, &result[i], x[i], &sz);
     }
     torc_waitall();
     t1 = torc_gettime();
 
-    for (i = 0; i < cnt; i++)
+    for (i=0; i<cnt; i++)
         for (int j = 0; j < sz; j++)
             printf("%d %d -> %lf\n", i, j, x[i][j]);
 
     for (i = 0; i < cnt; i++)
-        printf("Received: sqrt(%6.3f)=%6.3f\n", (double)(i + 1), result[i]);
+        printf("Received: sqrt(%6.3f)=%6.3f\n",(double) (i+1), result[i]);
 
-    printf("Elapsed time: %.2lf seconds\n", t1 - t0);
+    printf("Elapsed time: %.2lf seconds\n", t1-t0);
     torc_finalize();
     return 0;
 }

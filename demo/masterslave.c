@@ -10,9 +10,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <torc.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <torc.h>
 
 int times = 0;
 
@@ -39,31 +39,29 @@ int main(int argc, char *argv[])
     printf("address(slave)=%p\n", slave);
     torc_init(argc, argv, MODE_MS);
 
-    result = (double *)malloc(cnt * sizeof(double));
-    ii = (double *)malloc(cnt * sizeof(double));
+    result = (double *)malloc(cnt*sizeof(double));
+    ii = (double *)malloc(cnt*sizeof(double));
 
     //torc_taskinit();
     torc_enable_stealing();
     t0 = torc_gettime();
-    for (i = 0; i < cnt; i++)
-    {
-        di = (double)(i + 1);
+    for (i=0; i<cnt; i++) {
+        di = (double) (i+1);
         result[i] = 100 + i;
         torc_create(-1, slave, 2,
-                    1, MPI_DOUBLE, CALL_BY_COP,
-                    1, MPI_DOUBLE, CALL_BY_RES,
-                    &di, &result[i]);
+                     1, MPI_DOUBLE, CALL_BY_COP,
+                     1, MPI_DOUBLE, CALL_BY_RES,
+                     &di, &result[i]);
     }
 
     torc_waitall();
     t1 = torc_gettime();
 
-    for (i = 0; i < cnt; i++)
-    {
-        printf("Received: sqrt(%6.3f)=%6.3f\n", (double)(i + 1), result[i]);
+    for (i = 0; i < cnt; i++) {
+        printf("Received: sqrt(%6.3f)=%6.3f\n",(double) (i+1), result[i]);
     }
 
-    printf("Elapsed time: %.2lf seconds\n", t1 - t0);
+    printf("Elapsed time: %.2lf seconds\n", t1-t0);
     torc_finalize();
     return 0;
 }

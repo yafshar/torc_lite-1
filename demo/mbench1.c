@@ -16,18 +16,18 @@
 #include <sys/time.h>
 #endif
 
-#define DEF_NTHREADS 100
+#define    DEF_NTHREADS    100
 unsigned int count;
 
 volatile unsigned long counter = 0;
 
-void slave(void *arg)
+void slave (void *arg)
 {
     //    counter++;
     //    printf(".");
 }
 
-int my_main(void)
+int my_main (void)
 {
     unsigned int i = 0, nthreads = count;
     double time1, time2, time3;
@@ -36,20 +36,18 @@ int my_main(void)
     double sum_avg_total = 0.0;
     double min_avg = 1e6, max_avg = -1e6;
 
-    printf("Executing in my_main \n");
+    printf ("Executing in my_main \n");
     fflush(NULL);
 
     for (iteration = 0; iteration < niterations; iteration++)
     {
-        printf("ITERATION (%d)\n", iteration);
-        fflush(NULL);
+        printf("ITERATION (%d)\n", iteration); fflush(NULL);
         counter = 0;
         time1 = torc_gettime();
         i = 0;
-        while (i < nthreads)
-        {
+        while (i< nthreads) {
             torc_create(-1, slave, 1,
-                        1, MPI_LONG, CALL_BY_COP,
+                         1, MPI_LONG, CALL_BY_COP,
                         &i);
             ++i;
         }
@@ -57,29 +55,27 @@ int my_main(void)
         torc_waitall();
         time3 = torc_gettime();
 
-        creation = (time2 - time1) * 1.0E3;
-        execution = (time3 - time2) * 1.0E3;
+        creation = (time2 - time1)*1.0E3;
+        execution = (time3 - time2)*1.0E3;
         total = creation + execution;
 
         counter = nthreads;
 
-        sum_avg_total += total / counter;
-        if (iteration == 0)
-        {
-            min_avg = max_avg = (total / counter);
+        sum_avg_total += total/counter;
+        if (iteration == 0) {
+            min_avg = max_avg = (total/counter);
         }
-        else
-        {
-            if (min_avg > (total / counter))
-                min_avg = (total / counter);
-            if (max_avg < (total / counter))
-                max_avg = (total / counter);
+        else {
+            if (min_avg > (total/counter))
+                min_avg =  (total/counter);
+            if (max_avg < (total/counter))
+                max_avg =  (total/counter);
         }
         fflush(NULL);
     }
 
     printf("===================================================\n");
-    printf("-----------> Total average = %.3lf msecs <-----------\n", sum_avg_total / niterations);
+    printf("-----------> Total average = %.3lf msecs <-----------\n", sum_avg_total/niterations);
     printf("-----------> Total minimum = %.3lf msecs <-----------\n", min_avg);
     printf("-----------> Total maximum = %.3lf msecs <-----------\n", max_avg);
     printf("===================================================\n");
@@ -87,7 +83,7 @@ int my_main(void)
     return 55;
 }
 
-int main(int argc, char *argv[])
+int main (int argc, char * argv [])
 {
     unsigned int nthreads;
 
