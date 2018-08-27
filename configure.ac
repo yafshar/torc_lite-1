@@ -31,7 +31,6 @@ AC_CONFIG_HEADERS(include/torc_config.h)
 AM_INIT_AUTOMAKE
 
 AC_PROG_CC(mpicc)
-AC_PROG_CC_STDC
 AC_PROG_F77(mpif90)
 
 AC_LANG_C
@@ -189,6 +188,7 @@ AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [enable debugging (default:disabled)]),
     if eval "test x$enable_debug = xyes"; then
         DEBUGFLAG="-g"
+        CPPFLAGS=${CPPFLAGS}' -DDEBUG '
     else
         DEBUGFLAG=""
     fi,
@@ -392,25 +392,7 @@ AC_ARG_WITH(mpilibdir,
 #        AC_DEFINE(NONBLOCKING,,[Non-blocking server thread])
 #    fi,)
 
-###########################################################################
-
-#
-#
-#
-dnl AC_CHECK_DECL(__GNUC__, [ echo yes ], [ echo no])
-
-AC_ARG_ENABLE(debug,
-    AC_HELP_STRING([--enable-debug], [enable debugging (default:disabled)]),
-    if eval "test x$enable_debug = xyes"; then
-        DEBUGFLAG="-g"
-    else
-        DEBUGFLAG=""
-    fi,
-    DEBUGFLAG="")
-
-
-LDFLAGS="${LDFLAGS} ${MPILIB}"
-LDFLAGS="${LDFLAGS} -lpthread"
+LDFLAGS="${LDFLAGS} ${MPILIB} -lpthread"
 
 echo "Making with LDFLAGS=$LDFLAGS"
 

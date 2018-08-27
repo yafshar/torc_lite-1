@@ -27,14 +27,17 @@ void advance_and_execute(int tid)
     stageB.tid = stageA.tid;
     stageA.tid = tid;
 
-    if (stageA.tid > -1) {
+    if (stageA.tid > -1)
+    {
     }
-    if (stageB.tid > -1) {
+    if (stageB.tid > -1)
+    {
     }
-    if (stageC.tid > -1) {
+    if (stageC.tid > -1)
+    {
     }
     printf("[%d] task %2d: A=%2d B=%2d C=%2d\n", torc_worker_id(), tid, stageA.tid, stageB.tid, stageC.tid);
-    sleep(torc_node_id()+1);
+    sleep(torc_node_id() + 1);
 }
 
 void task(int *p_tid)
@@ -45,10 +48,12 @@ void task(int *p_tid)
 
     int check = torc_fetch_work();
 
-    if (check == 1) {
+    if (check == 1)
+    {
         return;
     }
-    else {
+    else
+    {
         advance_and_execute(-1);
         advance_and_execute(-1);
     }
@@ -65,11 +70,13 @@ void spmd()
     {
         MPI_Barrier(MPI_COMM_WORLD);
 
-        if (me == 0) printf("iter = %d\n", iter);
+        if (me == 0)
+            printf("iter = %d\n", iter);
 
         //if (me == 0)
         {
-            for (i=me; i<cnt; i+=workers) {
+            for (i = me; i < cnt; i += workers)
+            {
                 torc_task(me, (void *)task, 1,
                           1, MPI_INT, CALL_BY_COP,
                           &i);
@@ -83,7 +90,6 @@ void spmd()
     }
 }
 
-
 struct main_args
 {
     int argc;
@@ -92,7 +98,7 @@ struct main_args
 
 void *posix(void *arg)
 {
-    struct main_args *ma = (struct main_args *) arg;
+    struct main_args *ma = (struct main_args *)arg;
     int i;
     double t0, t1;
 
@@ -101,13 +107,14 @@ void *posix(void *arg)
     torc_init(ma->argc, ma->argv, MODE_MS);
 
     t0 = torc_gettime();
-    for (i=0; i<torc_num_workers(); i++) {
+    for (i = 0; i < torc_num_workers(); i++)
+    {
         torc_create(-1, (void *)spmd, 0);
     }
     torc_waitall();
     t1 = torc_gettime();
 
-    printf("Elapsed time: %.2lf seconds\n", t1-t0);
+    printf("Elapsed time: %.2lf seconds\n", t1 - t0);
     torc_finalize();
     return 0;
 }

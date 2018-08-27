@@ -10,13 +10,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <torc.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <torc.h>
 
 int times = 0;
-int DATA_ENTRIES;    //    11
-int lambda=4;
+int DATA_ENTRIES; //    11
+int lambda = 4;
 
 typedef struct data_s
 {
@@ -63,65 +63,69 @@ void callback(int *ptid, int *pnode_id, double *pout)
 
     pthread_mutex_lock(&m);
     completed++;
-    if (completed >= 20) exit_flag = 1;
+    if (completed >= 20)
+        exit_flag = 1;
 
-    printf("vvvvvvvvvvvvvvvv\n"); fflush(0);
-    printf("cb: tid = %d, node_id= %d pout = %f, completed = %d\n", tid, node_id, out, completed); fflush(0);
+    printf("vvvvvvvvvvvvvvvv\n");
+    fflush(0);
+    printf("cb: tid = %d, node_id= %d pout = %f, completed = %d\n", tid, node_id, out, completed);
+    fflush(0);
 
-    result[tid].out     = out;
+    result[tid].out = out;
     result[tid].node_id = node_id;
-    result[tid].state   = 2;    // done
+    result[tid].state = 2; // done
 
     if (completed % lambda == 0)
     {
-        printf("!!! completed == %d\n", completed); fflush(0);
-        printf("^^^^^^^^^^^^^^^^\n"); fflush(0);
+        printf("!!! completed == %d\n", completed);
+        fflush(0);
+        printf("^^^^^^^^^^^^^^^^\n");
+        fflush(0);
 
         int i;
         for (i = 0; i < DATA_ENTRIES; i++)
         {
-            if (result[i].state == 2) {
+            if (result[i].state == 2)
+            {
                 printf("%d: %f %f %d\n", i, result[i].in, result[i].out, result[i].state);
 
-                if (result[i].out != sqrt(result[i].in)) {
+                if (result[i].out != sqrt(result[i].in))
+                {
                     printf("XXX: res:%f vs ref:%f\n", result[i].out, sqrt(result[i].in));
                 }
-                result[i].state = 0;    // free
-                result[i].in    =-1;
-                result[i].out   =-1;
+                result[i].state = 0; // free
+                result[i].in = -1;
+                result[i].out = -1;
             }
         }
 
-
-        if (exit_flag) {
+        if (exit_flag)
+        {
             pthread_mutex_unlock(&m);
             return;
         }
 
-        for (i = 0 ; i < lambda; i++)
+        for (i = 0; i < lambda; i++)
         {
-            tid = find_tid();    // result[tid].state = 1;    //pending
-            double di = (double) (taskid++);
+            tid = find_tid(); // result[tid].state = 1;    //pending
+            double di = (double)(taskid++);
             result[tid].in = di;
 
             // I cannot spawn a normal task within the server thread
             printf("yy: spawning task %d for %f\n", tid, di);
             torc_create_detached(result[tid].node_id, slave, 2,
-                                 1, MPI_INT,    CALL_BY_COP,
+                                 1, MPI_INT, CALL_BY_COP,
                                  1, MPI_DOUBLE, CALL_BY_COP,
                                  &tid, &di);
         }
         pthread_mutex_unlock(&m);
-
     }
     else
     {
         pthread_mutex_unlock(&m);
         return;
     }
-
 }
-
 
 //void slave(int *ptid, double *pin, double *pout)
 void slave(int *ptid, double *pin)
@@ -148,7 +152,7 @@ void slave(int *ptid, double *pin)
     double *pout = &out;
     in = *pin;
     *pout = sqrt(in);
-//    printf("task %d: slave in = %f, *out = %f\n", tid, in, *pout); fflush(0);
+    //    printf("task %d: slave in = %f, *out = %f\n", tid, in, *pout); fflush(0);
 
     int node_id = torc_node_id();
 
@@ -159,8 +163,8 @@ void slave(int *ptid, double *pin)
     else
     {
         torc_create_direct(0, callback, 3,
-                           1, MPI_INT,    CALL_BY_COP,
-                           1, MPI_INT,    CALL_BY_COP,
+                           1, MPI_INT, CALL_BY_COP,
+                           1, MPI_INT, CALL_BY_COP,
                            1, MPI_DOUBLE, CALL_BY_COP,
                            &tid, &node_id, pout);
         torc_waitall3();
@@ -172,10 +176,9 @@ void torc_dispatch()
     torc_scheduler_loop(1);
 }
 
-
 int main(int argc, char *argv[])
 {
-    int cnt = 2*lambda-1;    // lambda + (lambda-1)
+    int cnt = 2 * lambda - 1; // lambda + (lambda-1)
     double di;
     int i;
     double t0, t1;
@@ -187,24 +190,25 @@ int main(int argc, char *argv[])
     printf("address(slave)=%p\n", slave);
     torc_init(argc, argv, MODE_MS);
 
-    DATA_ENTRIES = 3*lambda-1;
-    result = (data_t *)calloc(1, DATA_ENTRIES*sizeof(data_t));
+    DATA_ENTRIES = 3 * lambda - 1;
+    result = (data_t *)calloc(1, DATA_ENTRIES * sizeof(data_t));
 
     torc_enable_stealing();
 
     t0 = torc_gettime();
-    for (i=0; i<cnt; i++) {
+    for (i = 0; i < cnt; i++)
+    {
         pthread_mutex_lock(&m);
         int tid = find_tid();
         pthread_mutex_unlock(&m);
 
-        double di = (double) (taskid++);
+        double di = (double)(taskid++);
         result[tid].in = di;
 
         printf("yy: spawning task %d for %f\n", tid, di);
 
         torc_create_detached(tid % torc_num_workers(), slave, 2,
-                             1, MPI_INT,    CALL_BY_COP,
+                             1, MPI_INT, CALL_BY_COP,
                              1, MPI_DOUBLE, CALL_BY_COP,
                              &tid, &di);
     }
@@ -224,7 +228,7 @@ int main(int argc, char *argv[])
 
     fflush(0);
 
-    printf("Elapsed time: %.2lf seconds\n", t1-t0);
+    printf("Elapsed time: %.2lf seconds\n", t1 - t0);
     torc_finalize();
     return 0;
 }
