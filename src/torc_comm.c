@@ -24,6 +24,9 @@ static func_t internode_function_table[MAX_TORC_TASKS];
 //! Communication mutex object
 pthread_mutex_t comm_m = PTHREAD_MUTEX_INITIALIZER;
 
+//! External flag to register the function even after torc_init
+extern int torc_initialized;
+
 /**
  * @brief locks the mutex before the scope, in case of MPI implementation is not thread safe
  * 
@@ -56,8 +59,34 @@ void leave_comm_cs()
  * 
  * @param f Input task(function)
  */
+void torc_register_task_internal(long long *F)
+{
+    void *f = (void *)*F;
+    internode_function_table[number_of_functions] = (func_t)f;
+    number_of_functions++;
+}
+
+/**
+ * @brief Register a task
+ * We have to register different tasks
+ * 
+ * @param f Input task(function)
+ */
 void torc_register_task(void *f)
 {
+    if (torc_initialized)
+    {
+        long long F = (long long)f;
+        for (int i = 0; i < torc_num_nodes(); i++)
+        {
+            torc_create_ex(i * torc_i_num_workers(), 1, torc_register_task_internal, 1,
+                           1, MPI_LONG_LONG_INT, CALL_BY_COP,
+                           &F);
+        }
+        torc_waitall();
+        return;
+    }
+
     internode_function_table[number_of_functions] = (func_t)f;
     number_of_functions++;
 }
