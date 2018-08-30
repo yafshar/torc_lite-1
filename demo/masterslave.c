@@ -37,7 +37,8 @@ int main(int argc, char *argv[])
     torc_register_task(slave);
 
     printf("address(slave)=%p\n", slave);
-    torc_init(argc, argv, MODE_MS);
+    
+    torc_init(argc, argv);
 
     result = (double *)malloc(cnt * sizeof(double));
     ii = (double *)malloc(cnt * sizeof(double));

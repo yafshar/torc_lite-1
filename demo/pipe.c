@@ -104,7 +104,8 @@ void *posix(void *arg)
 
     torc_register_task((void *)task);
     torc_register_task((void *)spmd);
-    torc_init(ma->argc, ma->argv, MODE_MS);
+
+    torc_init(ma->argc, ma->argv);
 
     t0 = torc_gettime();
     for (i = 0; i < torc_num_workers(); i++)

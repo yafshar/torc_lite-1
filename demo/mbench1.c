@@ -100,7 +100,7 @@ int main(int argc, char *argv[])
     nthreads = count;
 
     torc_register_task(slave);
-    torc_init(argc, argv, MODE_MS);
+    torc_init(argc, argv);
 
     my_main();
 

@@ -14,6 +14,11 @@
 #include <unistd.h>
 #include <torc.h>
 
+pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
+
+int taskid = 0;
+int completed = 0;
+int exit_flag = 0;
 int times = 0;
 int DATA_ENTRIES; //    11
 int lambda = 4;
@@ -40,13 +45,6 @@ int find_tid()
     }
     return -1;
 }
-
-int taskid = 0;
-
-pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
-
-int completed = 0;
-int exit_flag = 0;
 
 void slave(int *ptid, double *pin);
 
@@ -127,32 +125,17 @@ void callback(int *ptid, int *pnode_id, double *pout)
     }
 }
 
-//void slave(int *ptid, double *pin, double *pout)
 void slave(int *ptid, double *pin)
 {
     int tid = *ptid;
     double in;
 
-#if 0
-    int i;
-    for (i = 0; i < 10; i++)
-    {
-        if (exit_flag) break;
-        sleep(1);
-    }
-    if (i != 10)
-    {
-        printf("Task %d was cancelled\n", tid);
-    }
-#else
     sleep(1);
-#endif
 
     double out;
     double *pout = &out;
     in = *pin;
     *pout = sqrt(in);
-    //    printf("task %d: slave in = %f, *out = %f\n", tid, in, *pout); fflush(0);
 
     int node_id = torc_node_id();
 
@@ -178,17 +161,20 @@ void torc_dispatch()
 
 int main(int argc, char *argv[])
 {
-    int cnt = 2 * lambda - 1; // lambda + (lambda-1)
+     // lambda + (lambda-1)
+    int cnt = 2 * lambda - 1;
     double di;
     int i;
     double t0, t1;
 
+    //! Firs twe refgister the tasks
     torc_register_task(slave);
     torc_register_task(callback);
     torc_register_task(setexit);
 
     printf("address(slave)=%p\n", slave);
-    torc_init(argc, argv, MODE_MS);
+
+    torc_init(argc, argv);
 
     DATA_ENTRIES = 3 * lambda - 1;
     result = (data_t *)calloc(1, DATA_ENTRIES * sizeof(data_t));
