@@ -9,8 +9,6 @@
 #include <torc_internal.h>
 #include <torc.h>
 
-#define f77fun 1
-
 struct torc_data *torc_data;
 
 #ifdef TORC_STATS
@@ -24,6 +22,9 @@ static int invisible_flag = 0;
         desc->target_queue = desc->vp_id = -1;              \
         desc->work_id = -1;                                 \
     }
+
+//! Initialize the static flag
+int torc_initialized = 0;
 
 void torc_waitall()
 {
@@ -524,20 +525,26 @@ int torc_worker_id(void)
         return _torc_get_vpid();
 }
 
-void torc_init(int argc, char *argv[], int ms)
+/**
+ * @brief Initializes the TORC execution environment 
+ * 
+ * @param argc Pointer to the number of arguments. 
+ * @param argv Argument vector. 
+ */
+void torc_init(int argc, char *argv[])
 {
-    static int torc_initialized = 0;
-
     if (torc_initialized)
     {
         return;
     }
 
+    //! This registration is for safety, in case we did not register a function before torc_init
+    torc_register_task((void *)torc_register_task_internal);
+
     torc_initialized = 1;
 
     torc_data = calloc(1, sizeof(struct torc_data));
 
-    //! Set the condition
     _torc_opt(argc, argv);
 
     _torc_env_init();
@@ -545,7 +552,35 @@ void torc_init(int argc, char *argv[], int ms)
     _torc_worker(0);
 }
 
-#if 1
+/**
+ * @brief Initializes the TORC execution environment 
+ * 
+ * @param argc     Pointer to the number of arguments. 
+ * @param argv     Argument vector. 
+ * @param comm_in  Communicator (handle). 
+ */
+void torc_init_comm(int argc, char *argv[], MPI_Comm comm_in)
+{
+    if (torc_initialized)
+    {
+        return;
+    }
+
+    //! This registration is for safety, in case we did not register a function before torc_init
+    torc_register_task((void *)torc_register_task_internal);
+
+    torc_initialized = 1;
+
+    torc_data = calloc(1, sizeof(struct torc_data));
+
+    __torc_opt(argc, argv, comm_in);
+
+    _torc_env_init();
+
+    _torc_worker(0);
+}
+
+
 void *torc_getarg_addr(int arg)
 {
     torc_t *self = _torc_self();
@@ -588,9 +623,21 @@ int torc_getarg_size(int arg)
     MPI_Type_size(_torc_self()->dtype[arg], &typesize);
     return typesize;
 }
-#endif
 
-#if 1
+
+/**
+ * @brief FORTRAN interfaces
+ * 
+ */
+
+/**
+ * We define this macro f77fun to avoid compiler confusion
+ * In some cases, like IBM compiler, due to the compiler name mangling, 
+ * FORTRAN and C interface are the same and we do not need to define a 
+ * new FORTRAN interface
+ */
+#define f77fun 1
+
 
 void F77_FUNC_(torc_taskinit, TORC_TASKINIT)()
 {
@@ -894,9 +941,9 @@ int F77_FUNC_(torc_sched_nextcpu, TORC_SCHED_NEXTCPU)(int *cpu, int *stride)
 }
 #endif
 
-void F77_FUNC_(torc_initf, TORC_INITF)(int *mode)
+void F77_FUNC_(torc_initf, TORC_INITF)()
 {
-    torc_init(0, NULL, *mode);
+    torc_init(0, NULL);
 }
 
 #if F77_FUNC_(f77fun, F77FUN) == f77fun
@@ -911,7 +958,5 @@ void F77_FUNC_(fff, FFF)()
 {
     fflush(0);
 }
-
-#endif
 
 #undef f77fun
