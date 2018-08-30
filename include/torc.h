@@ -19,13 +19,26 @@ extern "C"
 {
 #endif
 
-/* master-worker model, only one of the MPI
- processes executes the main routine and the rest of them
- become workers. */
-#define MODE_MW 0
-#define MODE_MS 0
+    /**
+     * @brief Initializes the TORC execution environment 
+     * Initilize the TORC library from MPI_COMM_WORLD
+     * 
+     * @param argc     Pointer to the number of arguments. 
+     * @param argv     Argument vector. 
+     * @param comm_in  Communicator (handle). 
+     */
+    void torc_init(int argc, char *argv[]);
 
-    void torc_init(int argc, char *argv[], int ms);
+    /**
+     * @brief Initializes the TORC execution environment 
+     * Initilize the TORC library from a communicator other than MPI_COMM_WORLD
+     * 
+     * @param argc     Pointer to the number of arguments. 
+     * @param argv     Argument vector. 
+     * @param comm_in  Communicator (handle). 
+     */
+    void torc_init_comm(int argc, char *argv[], MPI_Comm comm_in);
+
     void torc_reset_statistics();
 
     typedef double torc_time_t;
@@ -83,6 +96,9 @@ extern "C"
     void torc_register_task(void *f);
 
     int torc_fetch_work(); // for dr
+
+    //! static flag for TORC initialization
+    extern int torc_initialized;
 
 #ifdef __cplusplus
 }

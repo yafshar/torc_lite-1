@@ -59,7 +59,8 @@ int main(int argc, char *argv[])
     if (argc == 2) n = atoi(argv[1]);
 
     torc_register_task(slave);
-    torc_init(argc, argv, MODE_MS);
+    
+    torc_init(argc, argv);
 
     printf ("Executing in main [%ld]\n", n);
 

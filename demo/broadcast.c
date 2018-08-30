@@ -45,7 +45,7 @@ int main(int argc, char *argv[])
     }
 
     torc_register_task(slave);
-    torc_init(argc, argv, MODE_MS);
+    torc_init(argc, argv);
 
     gi = 23;
     gd = 23.0;

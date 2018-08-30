@@ -29,7 +29,7 @@ typedef void (*func_t)();
 
 //! Maximum number of virtual processors
 #ifndef MAX_NVPS
-#define MAX_NVPS 32
+#define MAX_NVPS 64
 #endif
 
 //! Maximum number of arguments
@@ -37,16 +37,16 @@ typedef void (*func_t)();
 #define MAX_TORC_ARGS 24
 #endif
 
-//! Maximum number of the tasks that torc library can register
+//! Maximum number of the tasks that the TORC library can register
 #ifndef MAX_TORC_TASKS
-#define MAX_TORC_TASKS 32
+#define MAX_TORC_TASKS 128
 #endif
 
 //! Run sequentialy
-#define TORC_DEF_CPUS 1   
+#define TORC_DEF_CPUS 1
 
-//! 10ms default yield-time    
-#define TORC_DEF_YIELDTIME 10 
+//! 10ms default yield-time
+#define TORC_DEF_YIELDTIME 10
 
 #include "utils.h"
 
@@ -61,11 +61,11 @@ typedef struct torc_desc
     struct torc_desc *next;
     //! Virtual processor ID
     long vp_id;
-    //! 
+    //!
     struct torc_desc *parent;
-    //! 
+    //!
     int ndep;
-    //! Function pointer 
+    //! Function pointer
     func_t work;
     //!
     int work_id;
@@ -102,7 +102,7 @@ typedef struct torc_desc
     //!
     INT64 localarg[MAX_TORC_ARGS]; /* data (address / value) in the owner node */
     //!
-    INT64 temparg[MAX_TORC_ARGS];  /* data (address / value) in the remote node */
+    INT64 temparg[MAX_TORC_ARGS]; /* data (address / value) in the remote node */
 } torc_t;
 
 /**
@@ -140,5 +140,12 @@ torc_t *_torc_get_currt();
 #include "torc_queue.h"
 #include "torc_data.h"
 #include "torc_mpi_internal.h"
+
+/**
+ * @brief Helper internal library function
+ * 
+ * @param F function pointer to register 
+ */
+void torc_register_task_internal(long long *F);
 
 #endif
