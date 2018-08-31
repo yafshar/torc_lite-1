@@ -1,5 +1,7 @@
-# torc_liteBasic instructions:
- 
+# TORC library
+
+Basic instructions:
+-------------------
 1. Make sure you have an MPI installation available on your system, preferably a thread-safe one
 
 2. ./configure CC=mpicc F77=mpif77 
@@ -10,7 +12,7 @@
 
 
 Installation:
-
+------------
 1. ./configure --prefix=<installation_directory> CC=mpicc F77=mpif77 
 
 2. make; make install
