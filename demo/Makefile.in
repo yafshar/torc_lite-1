@@ -304,7 +304,7 @@ target_vendor = @target_vendor@
 top_build_prefix = @top_build_prefix@
 top_builddir = @top_builddir@
 top_srcdir = @top_srcdir@
-AM_CFLAGS = @DEBUG_FLAG@ -I../include -I../uth -I.
+AM_CFLAGS = @DEBUG_FLAG@ -I../include -I.
 masterslave_SOURCES = masterslave.c
 masterslave_LDADD = $(LIBS)
 mbench1_SOURCES = mbench1.c
@@ -334,9 +334,9 @@ $(srcdir)/Makefile.in:  $(srcdir)/Makefile.am  $(am__configure_deps)
 	      exit 1;; \
 	  esac; \
 	done; \
-	echo ' cd $(top_srcdir) && $(AUTOMAKE) --gnu demo/Makefile'; \
+	echo ' cd $(top_srcdir) && $(AUTOMAKE) --foreign demo/Makefile'; \
 	$(am__cd) $(top_srcdir) && \
-	  $(AUTOMAKE) --gnu demo/Makefile
+	  $(AUTOMAKE) --foreign demo/Makefile
 Makefile: $(srcdir)/Makefile.in $(top_builddir)/config.status
 	@case '$?' in \
 	  *config.status*) \

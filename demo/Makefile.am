@@ -1,6 +1,6 @@
 bin_PROGRAMS= masterslave mbench1 fibo broadcast struct pipe async zerolength
 
-AM_CFLAGS = @DEBUG_FLAG@ -I../include -I../uth -I.
+AM_CFLAGS = @DEBUG_FLAG@ -I../include -I.
 
 LIBS = -L../src -ltorc $(MPILIB) -lpthread -lm 
 

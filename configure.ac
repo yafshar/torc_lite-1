@@ -45,9 +45,10 @@ AC_F77_WRAPPERS
 
 #=============================================================================
 # Adjust CPPFLAGS.
+# -D_REENTRANT tells the compiler to use thread safe (i.e. re-entrant) versions 
+# of several functions in the C library.
 #=============================================================================
-CPPFLAGS=${CPPFLAGS}' -D_REENTRANT  '
-AC_MSG_NOTICE([CPPFLAGS=${CPPFLAGS}])
+CPPFLAGS=${CPPFLAGS}' -D_REENTRANT '
 
 #=============================================================================
 # Check pthread.h
