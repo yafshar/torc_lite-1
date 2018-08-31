@@ -183,6 +183,18 @@ AC_ARG_WITH(maxvps,
 AC_SUBST(NVPS)
 
 #==============================================================================
+# Set max number of tasks that TORC library can register
+#==============================================================================
+NTASKS="64"
+AC_ARG_WITH(maxtasks,
+    AC_HELP_STRING([--with-maxtasks=num], [maximum number of TASKS (default: 64)]),
+    [
+    NTASKS=$withval
+    ]
+)
+AC_SUBST(NTASKS)
+
+#==============================================================================
 # Enable debugging
 #==============================================================================
 AC_ARG_ENABLE(debug,
@@ -193,8 +205,8 @@ AC_ARG_ENABLE(debug,
     else
         DEBUGFLAG=""
     fi,
-    DEBUGFLAG="")
-
+    DEBUGFLAG=""
+)
 AC_SUBST(DEBUG_FLAG)
 
 #=============================================================================

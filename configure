@@ -625,6 +625,7 @@ LIBOBJS
 MPILIB
 MPICC
 DEBUG_FLAG
+NTASKS
 NVPS
 NNODES
 EGREP
@@ -743,6 +744,7 @@ enable_dependency_tracking
 with_sync
 with_maxnodes
 with_maxvps
+with_maxtasks
 enable_debug
 with_cachelinesize
 with_mpi
@@ -1408,6 +1410,7 @@ Optional Packages:
                           spin, spin_try)
   --with-maxnodes=num     maximum number of nodes (default: 1024)
   --with-maxvps=num       maximum number of virtual processors (default: 64)
+  --with-maxtasks=num     maximum number of TASKS (default: 64)
   --with-cachelinesize=value
                           cache line size
   --with-mpi=<dir>        Location of the MPI installation
@@ -5963,6 +5966,21 @@ fi
 
 
 #==============================================================================
+# Set max number of tasks that TORC library can register
+#==============================================================================
+NTASKS="64"
+
+# Check whether --with-maxtasks was given.
+if test "${with_maxtasks+set}" = set; then :
+  withval=$with_maxtasks;
+    NTASKS=$withval
+
+
+fi
+
+
+
+#==============================================================================
 # Enable debugging
 #==============================================================================
 # Check whether --enable-debug was given.
@@ -5975,8 +5993,8 @@ if test "${enable_debug+set}" = set; then :
     fi
 else
   DEBUGFLAG=""
-fi
 
+fi
 
 
 
