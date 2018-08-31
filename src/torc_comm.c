@@ -12,9 +12,6 @@
 //! Node Inofrmation
 struct node_info *node_info;
 
-//! Address space layout flag
-int aslr_flag = 0;
-
 //! Number of registered tasks(functions)
 static int number_of_functions = 0;
 
@@ -122,59 +119,10 @@ func_t getfuncptr(int pos)
     return pos < MAX_TORC_TASKS ? internode_function_table[pos] : NULL;
 }
 
-/**
- * @brief Check the address space layout
- * 
- */
-void check_aslr()
-{
-    MPI_Request request;
-
-    //! Virtual address
-    unsigned long vaddr[MAX_NODES];
-    unsigned long vaddr_me = (unsigned long)check_aslr;
-
-    enter_comm_cs();
-    MPI_Iallgather(&vaddr_me, 1, MPI_UNSIGNED_LONG, vaddr, 1, MPI_UNSIGNED_LONG, comm_out, &request);
-    MPI_Wait(&request, MPI_STATUS_IGNORE);
-    leave_comm_cs();
-
-#if DEBUG
-    if (torc_node_id() == 0)
-    {
-        for (int i = 0; i < torc_num_nodes(); i++)
-        {
-            printf("node %2d -> %p\n", i, (void *)vaddr[i]);
-        }
-    }
-#endif
-
-    for (int i = 0; i < torc_num_nodes(); i++)
-    {
-        if (vaddr_me != vaddr[i])
-        {
-            aslr_flag = 1;
-            return;
-        }
-    }
-
-    return;
-}
-
-/**
- * @brief Get the aslr flag
- * 
- * @return int 
- */
-int get_aslr()
-{
-    return aslr_flag;
-}
-
 /**********************   INITIALIZATION ROUTINES   **********************/
 
 /**
- * @brief 
+ * @brief this routine allocate the memory fr node information prior to initialization
  * 
  */
 void _torc_comm_pre_init()
@@ -200,11 +148,7 @@ void _torc_comm_init()
     MPI_Request request;
 
     int workers[MAX_NODES];
-    int workers_me;
-
-    workers_me = kthreads;
-
-    check_aslr();
+    int workers_me = kthreads;
 
     enter_comm_cs();
     MPI_Iallgather(&workers_me, 1, MPI_INT, workers, 1, MPI_INT, comm_out, &request);
@@ -231,8 +175,9 @@ void _torc_comm_init()
 }
 
 /******   EXPICLIT COMMUNICATION FOR DESCRIPTORS (SEND, RECEIVE)    ******/
+
 static int _torc_thread_id()
-{
+{ //! Check if the identifier of the current thread is server_thread
     if (pthread_equal(pthread_self(), server_thread))
     {
         return MAX_NVPS;
@@ -243,66 +188,147 @@ static int _torc_thread_id()
     }
 }
 
+/**
+ * @brief Sending arguments (nonblocking send)
+ * 
+ * @param node Rank of destination node
+ * @param tag  Message tag 
+ * @param desc TORC descriptor
+ */
 void send_arguments(int node, int tag, torc_t *desc)
 {
-    MPI_Request request;
+    MPI_Request *requests = (MPI_Request *)malloc(desc->narg * sizeof(MPI_Request));
+    int nrequests = -1;
 
-    for (int i = 0; i < desc->narg; i++)
+    if (!thread_safe)
     {
-        if (desc->quantity[i] == 0)
+        for (int i = 0; i < desc->narg; i++)
         {
-            continue;
-        }
-
-        // By copy || By address
-        if ((desc->callway[i] == CALL_BY_COP) || (desc->callway[i] == CALL_BY_VAD))
-        {
-            /* do not send anything - the value is in the descriptor */
-            if (desc->quantity[i] == 1)
+            if (desc->quantity[i] == 0)
             {
                 continue;
             }
 
-            enter_comm_cs();
-            if (desc->homenode != desc->sourcenode)
+            // By copy || By address
+            if ((desc->callway[i] == CALL_BY_COP) || (desc->callway[i] == CALL_BY_VAD))
             {
-                MPI_Isend(&desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &request);
+                /* do not send anything - the value is in the descriptor */
+                if (desc->quantity[i] == 1)
+                {
+                    continue;
+                }
+
+                pthread_mutex_lock(&comm_m);
+                nrequests++;
+                if (desc->homenode != desc->sourcenode)
+                {
+                    MPI_Isend(&desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                else
+                {
+                    MPI_Isend(&desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                pthread_mutex_unlock(&comm_m);
             }
-            else
+            // By reference || By value || By copy
+            else if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_PTR) || (desc->callway[i] == CALL_BY_COP2))
             {
-                MPI_Isend(&desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &request);
+                pthread_mutex_lock(&comm_m);
+                nrequests++;
+                if (desc->homenode != desc->sourcenode)
+                {
+                    MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                else
+                {
+                    MPI_Isend((void *)desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                pthread_mutex_unlock(&comm_m);
             }
-            MPI_Wait(&request, MPI_STATUS_IGNORE);
-            leave_comm_cs();
+            //! CALL_BY_RES, do not send anything
         }
-        // By reference || By value || By copy
-        else if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_PTR) || (desc->callway[i] == CALL_BY_COP2))
+
+        if (nrequests > -1)
         {
-            enter_comm_cs();
-            if (desc->homenode != desc->sourcenode)
-            {
-                MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &request);
-            }
-            else
-            {
-                MPI_Isend((void *)desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &request);
-            }
-            MPI_Wait(&request, MPI_STATUS_IGNORE);
-            leave_comm_cs();
-        }
-        // By result
-        else /* CALL_BY_RES */
-        {
-            /*nothing*/;
+            pthread_mutex_lock(&comm_m);
+            MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+            pthread_mutex_unlock(&comm_m);
         }
     }
+    else
+    {
+        for (int i = 0; i < desc->narg; i++)
+        {
+            if (desc->quantity[i] == 0)
+            {
+                continue;
+            }
+
+            // By copy || By address
+            if ((desc->callway[i] == CALL_BY_COP) || (desc->callway[i] == CALL_BY_VAD))
+            {
+                /* do not send anything - the value is in the descriptor */
+                if (desc->quantity[i] == 1)
+                {
+                    continue;
+                }
+                {
+                    pthread_mutex_lock(&comm_m);
+                    nrequests++;
+                    pthread_mutex_unlock(&comm_m);
+                }
+                if (desc->homenode != desc->sourcenode)
+                {
+                    MPI_Isend(&desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                else
+                {
+                    MPI_Isend(&desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+            }
+            // By reference || By value || By copy
+            else if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_PTR) || (desc->callway[i] == CALL_BY_COP2))
+            {
+                {
+                    pthread_mutex_lock(&comm_m);
+                    nrequests++;
+                    pthread_mutex_unlock(&comm_m);
+                }
+                if (desc->homenode != desc->sourcenode)
+                {
+                    MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+                else
+                {
+                    MPI_Isend((void *)desc->localarg[i], desc->quantity[i], desc->dtype[i], node, tag, comm_out, &requests[nrequests]);
+                }
+            }
+            //! CALL_BY_RES, do not send anything
+        }
+
+        if (nrequests > -1)
+        {
+            MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+        }
+    }
+
+    free(requests);
 }
 
-/* Send a descriptor to the target node */
-void send_descriptor(int node, torc_t *desc, int type) /* always to a server thread */
+/**
+ * @brief Sending descriptor (nonblocking send)
+ * Send a descriptor to the target node - always to a server thread
+ * 
+ * @param node Rank of destination node 
+ * @param desc TORC descriptor 
+ * @param type Request type, which is one of 
+ *      \b DIRECT_SYNCHRONOUS_STEALING_REQUEST
+ *      \b TORC_BCAST
+ *      \b TORC_ANSWER
+ *      \b TORC_NORMAL_ENQUEUE
+ */
+void send_descriptor(int node, torc_t *desc, int type)
 {
-    MPI_Request request;
-
     int const tag = _torc_thread_id();
 
 #if DEBUG
@@ -314,51 +340,111 @@ void send_descriptor(int node, torc_t *desc, int type) /* always to a server thr
     desc->sourcevpid = tag;
     desc->type = type;
 
-    enter_comm_cs();
-    MPI_Isend(desc, torc_desc_size, MPI_CHAR, node, MAX_NVPS, comm_out, &request);
-    MPI_Wait(&request, MPI_STATUS_IGNORE);
-    leave_comm_cs();
-
-    switch (desc->type)
     {
-    case DIRECT_SYNCHRONOUS_STEALING_REQUEST:
+        MPI_Request request;
+
+        enter_comm_cs();
+        MPI_Isend(desc, torc_desc_size, MPI_CHAR, node, MAX_NVPS, comm_out, &request);
+        MPI_Wait(&request, MPI_STATUS_IGNORE);
+        leave_comm_cs();
+    }
+
+    if (desc->type == DIRECT_SYNCHRONOUS_STEALING_REQUEST)
+    {
         return;
-        break;
-    case TORC_BCAST:
+    }
+    else if (desc->type == TORC_BCAST)
+    {
         return;
-        break;
-    case TORC_ANSWER:
-        /* in case of call by reference send the data back */
-        for (int i = 0; i < desc->narg; i++)
+    }
+    else if (desc->type == TORC_ANSWER)
+    {
+        MPI_Request *requests = (MPI_Request *)malloc(desc->narg * sizeof(MPI_Request));
+        int nrequests = -1;
+
+        if (!thread_safe)
         {
-            if (desc->quantity[i] == 0)
+            /* in case of call by reference send the data back */
+            for (int i = 0; i < desc->narg; i++)
             {
-                continue;
-            }
+                if (desc->quantity[i] == 0)
+                {
+                    continue;
+                }
 
-            if ((desc->callway[i] == CALL_BY_COP2) && (desc->quantity[i] > 1))
-            {
-                free((void *)desc->temparg[i]);
-            }
-
-            //! send the result back
-            if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_RES))
-            {
-                enter_comm_cs();
-                MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->homenode, tag, comm_out, &request);
-                MPI_Wait(&request, MPI_STATUS_IGNORE);
-                leave_comm_cs();
-
-                if (desc->quantity[i] > 1)
+                if ((desc->callway[i] == CALL_BY_COP2) && (desc->quantity[i] > 1))
                 {
                     free((void *)desc->temparg[i]);
                 }
+
+                //! send the result back
+                if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_RES))
+                {
+                    pthread_mutex_lock(&comm_m);
+                    nrequests++;
+                    MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->homenode, tag, comm_out, &requests[nrequests]);
+                    pthread_mutex_unlock(&comm_m);
+
+                    if (desc->quantity[i] > 1)
+                    {
+                        free((void *)desc->temparg[i]);
+                    }
+                }
+            }
+
+            if (nrequests > -1)
+            {
+                pthread_mutex_lock(&comm_m);
+                MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+                pthread_mutex_unlock(&comm_m);
             }
         }
+        else
+        {
+            /* in case of call by reference send the data back */
+            for (int i = 0; i < desc->narg; i++)
+            {
+                if (desc->quantity[i] == 0)
+                {
+                    continue;
+                }
+
+                if ((desc->callway[i] == CALL_BY_COP2) && (desc->quantity[i] > 1))
+                {
+                    free((void *)desc->temparg[i]);
+                }
+
+                //! send the result back
+                if ((desc->callway[i] == CALL_BY_REF) || (desc->callway[i] == CALL_BY_RES))
+                {
+                    {
+                        pthread_mutex_lock(&comm_m);
+                        nrequests++;
+                        pthread_mutex_unlock(&comm_m);
+                    }
+
+                    MPI_Isend((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->homenode, tag, comm_out, &requests[nrequests]);
+
+                    if (desc->quantity[i] > 1)
+                    {
+                        free((void *)desc->temparg[i]);
+                    }
+                }
+            }
+
+            if (nrequests > -1)
+            {
+                MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+            }
+        }
+
+        free(requests);
+
         return;
-        break;
+    }
     //! TORC_NORMAL_ENQUEUE
-    default:
+    else
+    {
         if (desc->homenode == node)
         {
             return;
@@ -366,7 +452,6 @@ void send_descriptor(int node, torc_t *desc, int type) /* always to a server thr
 
         send_arguments(node, tag, desc);
         return;
-        break;
     }
 }
 
@@ -403,54 +488,116 @@ void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *d
 
 void receive_arguments(torc_t *desc, int tag)
 {
-    MPI_Request request;
+    MPI_Request *requests = (MPI_Request *)malloc(desc->narg * sizeof(MPI_Request));
+    int nrequests = -1;
 
-    for (int i = 0; i < desc->narg; i++)
+    if (!thread_safe)
     {
+        for (int i = 0; i < desc->narg; i++)
+        {
 #if DEBUG
-        printf("reading arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
-        fflush(0);
+            printf("reading arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
+            fflush(0);
 #endif
-        if (desc->quantity[i] == 0)
-        {
-            continue;
-        }
-
-        if ((desc->quantity[i] > 1) || ((desc->callway[i] != CALL_BY_COP) && (desc->callway[i] != CALL_BY_VAD)))
-        {
-
-            desc->dtype[i] = _torc_b2mpi_type(desc->btype[i]);
-
-            int typesize;
-            MPI_Type_size(desc->dtype[i], &typesize);
-
-            char *mem = (char *)calloc(1, desc->quantity[i] * typesize);
-
-            desc->temparg[i] = (INT64)mem;
-            //! CALL_BY_REF
-            if ((desc->callway[i] != CALL_BY_RES))
+            if (desc->quantity[i] == 0)
             {
-                enter_comm_cs();
-                MPI_Irecv((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->sourcenode, tag, comm_out, &request);
-                MPI_Wait(&request, MPI_STATUS_IGNORE);
-                leave_comm_cs();
+                continue;
             }
-            else if (desc->callway[i] == CALL_BY_RES)
+
+            if ((desc->quantity[i] > 1) || ((desc->callway[i] != CALL_BY_COP) && (desc->callway[i] != CALL_BY_VAD)))
             {
-                // double setval = 0;
-                // memsetvalue((void *)desc->temparg[i], setval, desc->quantity[i], desc->dtype[i]);
+
+                desc->dtype[i] = _torc_b2mpi_type(desc->btype[i]);
+
+                int typesize;
+                MPI_Type_size(desc->dtype[i], &typesize);
+
+                char *mem = (char *)calloc(1, desc->quantity[i] * typesize);
+
+                desc->temparg[i] = (INT64)mem;
+
+                //! All the types except by result
+                if (desc->callway[i] != CALL_BY_RES)
+                {
+                    pthread_mutex_lock(&comm_m);
+                    nrequests++;
+                    MPI_Irecv((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->sourcenode, tag, comm_out, &requests[nrequests]);
+                    pthread_mutex_unlock(&comm_m);
+                }
             }
-        }
-        else
-        {
-            desc->temparg[i] = desc->localarg[i];
-        }
+            else
+            {
+                desc->temparg[i] = desc->localarg[i];
+            }
 
 #if DEBUG
-        printf("read+++ arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
-        fflush(0);
+            printf("read+++ arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
+            fflush(0);
 #endif
+        }
+
+        if (nrequests > -1)
+        {
+            pthread_mutex_lock(&comm_m);
+            MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+            pthread_mutex_unlock(&comm_m);
+        }
     }
+    else
+    {
+        for (int i = 0; i < desc->narg; i++)
+        {
+#if DEBUG
+            printf("reading arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
+            fflush(0);
+#endif
+            if (desc->quantity[i] == 0)
+            {
+                continue;
+            }
+
+            if ((desc->quantity[i] > 1) || ((desc->callway[i] != CALL_BY_COP) && (desc->callway[i] != CALL_BY_VAD)))
+            {
+
+                desc->dtype[i] = _torc_b2mpi_type(desc->btype[i]);
+
+                int typesize;
+                MPI_Type_size(desc->dtype[i], &typesize);
+
+                char *mem = (char *)calloc(1, desc->quantity[i] * typesize);
+
+                desc->temparg[i] = (INT64)mem;
+
+                //! All the types except by result
+                if (desc->callway[i] != CALL_BY_RES)
+                {
+                    {
+                        pthread_mutex_lock(&comm_m);
+                        nrequests++;
+                        pthread_mutex_unlock(&comm_m);
+                    }
+
+                    MPI_Irecv((void *)desc->temparg[i], desc->quantity[i], desc->dtype[i], desc->sourcenode, tag, comm_out, &requests[nrequests]);
+                }
+            }
+            else
+            {
+                desc->temparg[i] = desc->localarg[i];
+            }
+
+#if DEBUG
+            printf("read+++ arg %d (%d - %d)\n", i, desc->quantity[i], desc->callway[i]);
+            fflush(0);
+#endif
+        }
+
+        if (nrequests > -1)
+        {
+            MPI_Waitall(nrequests + 1, requests, MPI_STATUSES_IGNORE);
+        }
+    }
+
+    free(requests);
 }
 
 int receive_descriptor(int node, torc_t *rte)
