@@ -430,7 +430,7 @@ void receive_arguments(torc_t *desc, int tag)
     }
 }
 
-void receive_descriptor(int node, torc_t *rte)
+void receive_descriptor(int node, torc_t *desc)
 {
     MPI_Request request;
 
@@ -439,7 +439,7 @@ void receive_descriptor(int node, torc_t *rte)
 
     if (thread_safe)
     {
-        istat = MPI_Irecv(rte, torc_size, MPI_CHAR, node, tag, comm_out, &request);
+        istat = MPI_Irecv(desc, torc_size, MPI_CHAR, node, tag, comm_out, &request);
         MPI_Wait(&request, MPI_STATUS_IGNORE);
     }
     else
@@ -448,14 +448,14 @@ void receive_descriptor(int node, torc_t *rte)
         int flag = 0;
 
         enter_comm_cs();
-        istat = MPI_Irecv(rte, torc_size, MPI_CHAR, node, tag, comm_out, &request);
+        istat = MPI_Irecv(desc, torc_size, MPI_CHAR, node, tag, comm_out, &request);
         leave_comm_cs();
 
         while (1)
         {
             if (appl_finished == 1)
             {
-                rte->type = TORC_NO_WORK;
+                desc->type = TORC_NO_WORK;
                 return;
             }
 
@@ -476,19 +476,19 @@ void receive_descriptor(int node, torc_t *rte)
 
     if (istat != MPI_SUCCESS)
     {
-        rte->type = TORC_NO_WORK;
+        desc->type = TORC_NO_WORK;
         return;
     }
 
-    if (rte->type == TORC_NO_WORK)
+    if (desc->type == TORC_NO_WORK)
     {
         return;
     }
 
     //! homenode == torc_node_id() -> the descriptor is stolen by its owner node
-    if (rte->homenode != torc_node_id())
+    if (desc->homenode != torc_node_id())
     {
-        receive_arguments(rte, tag);
+        receive_arguments(desc, tag);
     }
 
     return;
