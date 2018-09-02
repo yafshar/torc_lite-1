@@ -143,8 +143,6 @@ else
     AC_MSG_FAILURE([no appropriate synchronization method found])
 fi
 
-#
-#
 
 if test ".$syncopt" = ".mutex"; then
     (cd include; echo "#define POSIX_MUTEX_LOCK" > ps_config.h)
@@ -157,7 +155,6 @@ elif test ".$syncopt" = ".spin_try"; then
 else
     AC_MSG_FAILURE([no appropriate synchronization method found])
 fi
-
 
 #==============================================================================
 # Set max number of nodes (mpi processes)
@@ -198,15 +195,13 @@ AC_SUBST(NTASKS)
 #==============================================================================
 # Enable debugging
 #==============================================================================
+DEBUG_FLAG=""
 AC_ARG_ENABLE(debug,
     AC_HELP_STRING([--enable-debug], [enable debugging (default:disabled)]),
-    if eval "test x$enable_debug = xyes"; then
-        DEBUGFLAG="-g"
-        CPPFLAGS=${CPPFLAGS}' -DDEBUG '
-    else
-        DEBUGFLAG=""
+    if eval "test x"${enableval}" = xyes"; then
+        DEBUG_FLAG="-g"
+        CPPFLAGS+=' -DDEBUG '
     fi,
-    DEBUGFLAG=""
 )
 AC_SUBST(DEBUG_FLAG)
 
@@ -399,16 +394,7 @@ AC_ARG_WITH(mpilibdir,
         AC_DEFINE(TORC_STATS,,[Runtime statistics])
 #    fi,)
 
-# Non blocking communication (useful for mpi libraries that do not provide thread safety)
-#AC_ARG_ENABLE(nonblocking,
-#    AC_HELP_STRING([--enable-nonblocking], [enable nonblocking server thread (default:disabled)]),
-#    if eval "test x$enable_nonblocking = xyes"; then
-#        AC_DEFINE(NONBLOCKING,,[Non-blocking server thread])
-#    fi,)
-
 LDFLAGS="${LDFLAGS} ${MPILIB} -lpthread"
-
-echo "Making with LDFLAGS=$LDFLAGS"
 
 AC_SUBST(MPICC)
 AC_SUBST(MPILIB)
@@ -432,8 +418,6 @@ AC_LANG_PROGRAM([
 ],
 [mpic_enabled=yes], [mpic_enabled=no])
 AC_LANG_POP(C)
-
-#echo $mpic_enabled
 
 if test ".$mpic_enabled" = ".yes"; then
     AC_MSG_RESULT([yes])
