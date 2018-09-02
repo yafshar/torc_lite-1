@@ -5916,8 +5916,6 @@ as_fn_error $? "no appropriate synchronization method found
 See \`config.log' for more details" "$LINENO" 5; }
 fi
 
-#
-#
 
 if test ".$syncopt" = ".mutex"; then
     (cd include; echo "#define POSIX_MUTEX_LOCK" > ps_config.h)
@@ -5933,7 +5931,6 @@ $as_echo "$as_me: error: in \`$ac_pwd':" >&2;}
 as_fn_error $? "no appropriate synchronization method found
 See \`config.log' for more details" "$LINENO" 5; }
 fi
-
 
 #==============================================================================
 # Set max number of nodes (mpi processes)
@@ -5983,17 +5980,13 @@ fi
 #==============================================================================
 # Enable debugging
 #==============================================================================
+DEBUG_FLAG=""
 # Check whether --enable-debug was given.
 if test "${enable_debug+set}" = set; then :
-  enableval=$enable_debug; if eval "test x$enable_debug = xyes"; then
-        DEBUGFLAG="-g"
-        CPPFLAGS=${CPPFLAGS}' -DDEBUG '
-    else
-        DEBUGFLAG=""
+  enableval=$enable_debug; if eval "test x"${enableval}" = xyes"; then
+        DEBUG_FLAG="-g"
+        CPPFLAGS+=' -DDEBUG '
     fi
-else
-  DEBUGFLAG=""
-
 fi
 
 
@@ -6242,16 +6235,7 @@ $as_echo "#define TORC_STATS /**/" >>confdefs.h
 
 #    fi,)
 
-# Non blocking communication (useful for mpi libraries that do not provide thread safety)
-#AC_ARG_ENABLE(nonblocking,
-#    AC_HELP_STRING([--enable-nonblocking], [enable nonblocking server thread (default:disabled)]),
-#    if eval "test x$enable_nonblocking = xyes"; then
-#        AC_DEFINE(NONBLOCKING,,[Non-blocking server thread])
-#    fi,)
-
 LDFLAGS="${LDFLAGS} ${MPILIB} -lpthread"
-
-echo "Making with LDFLAGS=$LDFLAGS"
 
 
 
@@ -6310,8 +6294,6 @@ ac_compile='$CC -c $CFLAGS $CPPFLAGS conftest.$ac_ext >&5'
 ac_link='$CC -o conftest$ac_exeext $CFLAGS $CPPFLAGS $LDFLAGS conftest.$ac_ext $LIBS >&5'
 ac_compiler_gnu=$ac_cv_c_compiler_gnu
 
-
-#echo $mpic_enabled
 
 if test ".$mpic_enabled" = ".yes"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: result: yes" >&5
