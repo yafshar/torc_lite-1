@@ -10,18 +10,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <torc.h>
 #include <sys/wait.h>
-int times = 0;
+
+#include <torc.h>
 
 void slave(double *pin, double *out, double *x, int *pn)
 {
-    int n = *pn;
+    int const n = *pn;
     double in = *pin;
 
-    if (n > 0)
-        for (int j = 0; j < n; j++)
-            x[j] = (double)torc_worker_id();
+    for (int i = 0; i < n; i++)
+    {
+        x[i] = (double)torc_worker_id();
+    }
 
     *out = sqrt(in);
     printf("B slave in = %f, *out = %f, [x = %p, n = %d]\n", in, *out, x, n);
@@ -30,41 +31,45 @@ void slave(double *pin, double *out, double *x, int *pn)
 
 int main(int argc, char *argv[])
 {
-    int cnt = 4;
-    double di;
-    double *result;
-    double *ii;
-    int i;
+    int sz = 0;
+    if (argc == 2)
+    {
+        sz = atoi(argv[1]);
+    }
+
     double t0, t1;
 
-    int sz = 0;
+    int const cnt = 4;
 
-    if (argc == 2)
-        sz = atoi(argv[1]);
+    double di;
+    double *result = NULL;
+    double *ii = NULL;
+    double *x[cnt];
 
-    srand48(33);
-
+    //! First, register the task
     torc_register_task(slave);
 
-    printf("address(slave)=%p\n", slave);
-
+    //! Second, initialize the TORC library
     torc_init(argc, argv);
 
     result = (double *)malloc(cnt * sizeof(double));
     ii = (double *)malloc(cnt * sizeof(double));
 
-    double *x[cnt];
-
     //torc_enable_stealing();
     t0 = torc_gettime();
-    for (i = 0; i < cnt; i++)
+    for (int i = 0; i < cnt; i++)
     {
         di = (double)(i + 1);
         result[i] = 100 + i;
+
         if (sz == 0)
+        {
             x[i] = NULL;
+        }
         else
+        {
             x[i] = malloc(sz * sizeof(double));
+        }
 
         torc_create(-1, slave, 4,
                     1, MPI_DOUBLE, CALL_BY_COP,
@@ -76,14 +81,32 @@ int main(int argc, char *argv[])
     torc_waitall();
     t1 = torc_gettime();
 
-    for (i = 0; i < cnt; i++)
+    for (int i = 0; i < cnt; i++)
+    {
         for (int j = 0; j < sz; j++)
+        {
             printf("%d %d -> %lf\n", i, j, x[i][j]);
+        }
+    }
 
-    for (i = 0; i < cnt; i++)
+    for (int i = 0; i < cnt; i++)
+    {
         printf("Received: sqrt(%6.3f)=%6.3f\n", (double)(i + 1), result[i]);
+    }
 
     printf("Elapsed time: %.2lf seconds\n", t1 - t0);
+
+    free(result);
+    free(ii);
+    for (int i = 0; i < cnt; i++)
+    {
+        if (sz != 0)
+        {
+            free(x[i]);
+        }
+    }
+
+    //! Finalize the TORC library
     torc_finalize();
     return 0;
 }
