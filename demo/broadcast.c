@@ -14,18 +14,33 @@
 
 #include <torc.h>
 
+//! Global variables
 int gi;
 int gti[16];
 
 double gd;
 double gtd[16];
 
-void slave()
+/**
+ * @brief Prints the information on each worker
+ * 
+ * @param bstate State of the variables (before broadcast = 0 & after broadcast = 1)
+ */
+void slave(int *bstate)
 {
     int me = torc_worker_id();
     int node = torc_node_id();
 
-    printf("worker[%d] node[%d]: %d %f %d %f\n", me, node, gi, gd, gti[5], gtd[5]);
+    if (*bstate)
+    {
+        printf("After  broadcast - worker[%d] on node[%d]: %d %f %d %f\n", me, node, gi, gd, gti[5], gtd[5]);
+        fflush(0);
+    }
+    else
+    {
+        printf("Before broadcast - worker[%d] on node[%d]: %d %f %d %f\n", me, node, gi, gd, gti[5], gtd[5]);
+        fflush(0);
+    }
     sleep(1);
     return;
 }
@@ -48,8 +63,8 @@ int main(int argc, char *argv[])
         gti[i] = 100;
         gtd[i] = 100.0;
     }
-    
-    //! First, register the task 
+
+    //! First, register the task
     torc_register_task(slave);
 
     //! Second, initialize the TORC library
@@ -64,11 +79,16 @@ int main(int argc, char *argv[])
         gtd[i] = gti[i] + 1;
     }
 
+    //! before broadcasting the data
+    int bstate = 0;
+
     //! Print the values on each worker
     int const ntasks = torc_num_workers();
     for (int i = 0; i < ntasks; i++)
     {
-        torc_create(-1, slave, 0);
+        torc_create(-1, slave, 1,
+                    1, MPI_INT, CALL_BY_COP,
+                    &bstate);
     }
     torc_waitall();
 
@@ -78,10 +98,14 @@ int main(int argc, char *argv[])
     torc_broadcast(&gti, 16, MPI_INT);
     torc_broadcast(&gtd, 16, MPI_DOUBLE);
 
+    bstate = 1;
+
     //! Print the values on each worker
     for (int i = 0; i < ntasks; i++)
     {
-        torc_create(-1, slave, 0);
+        torc_create(-1, slave, 1,
+                    1, MPI_INT, CALL_BY_COP,
+                    &bstate);
     }
     torc_waitall();
 
