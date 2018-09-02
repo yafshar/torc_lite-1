@@ -25,7 +25,6 @@
 #define TORC_ANSWER 140
 #define TORC_NORMAL_ENQUEUE 141
 #define TORC_NO_WORK 142
-
 #define TORC_BCAST 145
 
 enum
@@ -57,9 +56,10 @@ enum
     T_MPI_DOUBLE_PRECISION,
     T_MPI_INTEGER,
     T_MPI_2INTEGER,
+    T_MPI_CHARACTER
 };
 
-MPI_Comm comm_out;
+extern MPI_Comm comm_out;
 
 struct node_info
 {
@@ -90,21 +90,22 @@ extern struct node_info *node_info;
         printf("\n");                       \
     }
 
-void enter_comm_cs();
-void leave_comm_cs();
-void _torc_comm_pre_init();
-void _torc_comm_init();
-void _torc_preallocate_memory();
+
 int global_thread_id_to_node_id(int global_thread_id);
 int local_thread_id_to_global_thread_id(int local_thread_id);
 int global_thread_id_to_local_thread_id(int global_thread_id);
-int _torc_total_num_threads();
+int _torc_total_num_threads(void);
+void enter_comm_cs(void);
+void leave_comm_cs(void);
+void _torc_comm_pre_init(void);
+void _torc_comm_init(void);
 void *server_loop(void *arg);
-void terminate_workers(); /* notify_appl_finished() */
+//! notify_appl_finished()
+void terminate_workers(void);
 void send_descriptor(int, torc_t *, int);
 void direct_send_descriptor(int dummy, int sourcenode, int sourcevpid, torc_t *desc);
 void receive_arguments(torc_t *work, int tag);
-int receive_descriptor(int node, torc_t *work);
+void receive_descriptor(int node, torc_t *work);
 torc_t *direct_synchronous_stealing_request(int target_node);
 func_t getfuncptr(int funcpos);
 int getfuncnum(func_t f);
