@@ -1,4 +1,7 @@
 # TORC library
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+
 TORC is a task-parallel library that provides a programming and runtime environment where parallel programs can be executed unaltered on both shared and distributed memory platforms. 
 TORC supports arbitrary nesting of tasks while all data transfers in the library are performed with explicit, transparent to the user, messaging. 
 Due to the task stealing mechanism, the programmer has only to decide about the task distribution scheme. 
