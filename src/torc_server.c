@@ -11,11 +11,11 @@
 
 static torc_t no_work_desc;
 
-//! Server thread mutex object 
+//! Server thread mutex object
 static pthread_mutex_t server_thread_m = PTHREAD_MUTEX_INITIALIZER;
 
 //! Internode mutex
-pthread_mutex_t internode_m = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t internode_m = PTHREAD_MUTEX_INITIALIZER;
 
 //! Voletile flag to indicate the termination
 volatile int termination_flag = 0;
@@ -23,18 +23,27 @@ volatile int termination_flag = 0;
 //! Indicator if the server is still alive
 static int server_thread_alive = 0;
 
+//! Size of the data structure
+static unsigned long const torc_size = sizeof(torc_t);
+
+/**
+ * @brief Accept received descriptor from a process of desc->sourcenode
+ * 
+ * @param desc 
+ * @return int
+ */
 int process_a_received_descriptor(torc_t *desc)
 {
-    MPI_Request request;
-
-    desc->next = NULL;
-
 #if DEBUG
     if (torc_node_id() == desc->sourcenode)
     {
         printf("Node id %d = sourcenode %d\n", torc_node_id(), desc->sourcenode);
     }
 #endif
+
+    MPI_Request request;
+
+    desc->next = NULL;
 
     int tag = desc->sourcevpid;
 
@@ -71,25 +80,17 @@ int process_a_received_descriptor(torc_t *desc)
                 MPI_Wait(&request, MPI_STATUS_IGNORE);
                 leave_comm_cs();
             }
-#if DEBUG
-            printf("received data from %d\n", desc->sourcenode);
-            fflush(0);
-#endif
-        }
-
-        for (int i = 0; i < desc->narg; i++)
-        {
-            if (desc->quantity[i] == 0)
-            {
-                continue;
-            }
-
-            if (desc->callway[i] == CALL_BY_COP2)
+            else if (desc->callway[i] == CALL_BY_COP2)
             {
                 free((void *)desc->localarg[i]);
 
                 desc->localarg[i] = 0;
             }
+
+#if DEBUG
+            printf("received data from %d\n", desc->sourcenode);
+            fflush(0);
+#endif
         }
 
         if (desc->parent)
@@ -105,6 +106,7 @@ int process_a_received_descriptor(torc_t *desc)
     {
         if (desc->homenode == torc_node_id())
         {
+            //! Add the descriptor desc at the head of the public global queue public_grq
             torc_to_i_rq(desc);
 
             return 0;
@@ -169,25 +171,28 @@ int process_a_received_descriptor(torc_t *desc)
 #endif
         steal_attempts++;
 
-        torc_t *stolen_work = torc_i_rq_dequeue(0);
+        torc_t *stolen_work = NULL;
 
-        for (int i = 1; i < 10; i++)
+        for (int i = 0; i < 10; i++)
         {
-            if (stolen_work == NULL)
-                stolen_work = torc_i_rq_dequeue(i);
-            else
+            stolen_work = torc_i_rq_dequeue(i);
+            if (stolen_work != NULL)
+            {
                 break;
+            }
         }
 
         if (stolen_work != NULL)
         {
             direct_send_descriptor(DIRECT_SYNCHRONOUS_STEALING_REQUEST, desc->sourcenode, desc->sourcevpid, stolen_work);
+
             steal_served++;
         }
         else
         {
             direct_send_descriptor(DIRECT_SYNCHRONOUS_STEALING_REQUEST, desc->sourcenode, desc->sourcevpid, &no_work_desc);
         }
+
         return 0;
     }
     break;
@@ -207,10 +212,12 @@ int process_a_received_descriptor(torc_t *desc)
         {
             appl_finished++;
         }
+
 #if DEBUG
         printf("Server %d will exit\n", torc_node_id());
         fflush(0);
 #endif
+
         return 1;
     }
     break;
@@ -226,6 +233,7 @@ int process_a_received_descriptor(torc_t *desc)
     case DISABLE_INTERNODE_STEALING:
     {
         internode_stealing = 0;
+
         return 1;
     }
     break;
@@ -233,23 +241,26 @@ int process_a_received_descriptor(torc_t *desc)
     case RESET_STATISTICS:
     {
         torc_reset_statistics();
+
         return 1;
     }
     break;
 
     case TORC_BCAST:
     {
-        void *va = (void *)desc->localarg[1];
+        void *buffer = (void *)desc->localarg[1];
 
         int count = desc->localarg[2];
 
         MPI_Datatype dtype = _torc_b2mpi_type(desc->localarg[3]);
 
-        printf("TORC_BCAST: %p %d\n", va, count);
+#if DEBUG
+        printf("TORC_BCAST: %p %d\n", buffer, count);
         fflush(0);
+#endif
 
         enter_comm_cs();
-        MPI_Irecv((void *)va, count, dtype, desc->sourcenode, tag, comm_out, &request);
+        MPI_Irecv((void *)buffer, count, dtype, desc->sourcenode, tag, comm_out, &request);
         MPI_Wait(&request, MPI_STATUS_IGNORE);
         leave_comm_cs();
 
@@ -273,19 +284,19 @@ int process_a_received_descriptor(torc_t *desc)
  */
 void *server_loop(void *arg)
 {
-    torc_t *desc;
-    int reuse = 0;
-
-    MPI_Request request;
-
 #if DEBUG
     printf("Server %d begins....\n", torc_node_id());
     fflush(stdout);
 #endif
 
-    memset(&no_work_desc, 0, sizeof(torc_t));
+    memset(&no_work_desc, 0, torc_size);
 
     no_work_desc.type = TORC_NO_WORK;
+
+    MPI_Request request;
+    int reuse = 0;
+
+    torc_t *desc = NULL;
 
     while (1)
     {
@@ -294,7 +305,7 @@ void *server_loop(void *arg)
             desc = _torc_get_reused_desc();
         }
 
-        memset(desc, 0, sizeof(torc_t)); /* lock ..?*/
+        memset(desc, 0, torc_size);
 
 #if DEBUG
         printf("Server %d waits for a descriptor ....\n", torc_node_id());
@@ -303,7 +314,7 @@ void *server_loop(void *arg)
 
         if (thread_safe)
         {
-            MPI_Irecv(desc, torc_desc_size, MPI_CHAR, MPI_ANY_SOURCE, MAX_NVPS, comm_out, &request);
+            MPI_Irecv(desc, torc_size, MPI_CHAR, MPI_ANY_SOURCE, MAX_NVPS, comm_out, &request);
             MPI_Wait(&request, MPI_STATUS_IGNORE);
         }
         else
@@ -314,7 +325,7 @@ void *server_loop(void *arg)
             }
 
             enter_comm_cs();
-            MPI_Irecv(desc, torc_desc_size, MPI_CHAR, MPI_ANY_SOURCE, MAX_NVPS, comm_out, &request);
+            MPI_Irecv(desc, torc_size, MPI_CHAR, MPI_ANY_SOURCE, MAX_NVPS, comm_out, &request);
             leave_comm_cs();
 
             int flag = 0;
@@ -432,7 +443,7 @@ void terminate_workers()
 #endif
 
     torc_t mydata;
-    memset(&mydata, 0, sizeof(torc_t));
+    memset(&mydata, 0, torc_size);
 
     int const mynode = torc_node_id();
 
@@ -456,7 +467,7 @@ torc_t *direct_synchronous_stealing_request(int target_node)
         return NULL;
     }
 
-    torc_t *desc;
+    torc_t *desc = NULL;
 
     {
         int vp = target_node;
@@ -509,12 +520,13 @@ void torc_disable_stealing()
     internode_stealing = 0;
 
     torc_t mydata;
-    memset(&mydata, 0, sizeof(torc_t));
+    memset(&mydata, 0, torc_size);
 
     int const mynode = torc_node_id();
 
     mydata.localarg[0] = (INT64)mynode;
-    mydata.homenode = mydata.sourcenode = mynode;
+    mydata.homenode = mynode;
+    mydata.sourcenode = mynode;
 
     for (int node = 0; node < torc_num_nodes(); node++)
     {
@@ -536,12 +548,13 @@ void torc_enable_stealing()
     internode_stealing = 1;
 
     torc_t mydata;
-    memset(&mydata, 0, sizeof(torc_t));
+    memset(&mydata, 0, torc_size);
 
     int const mynode = torc_node_id();
 
     mydata.localarg[0] = (INT64)mynode;
-    mydata.homenode = mydata.sourcenode = mynode;
+    mydata.homenode = mynode;
+    mydata.sourcenode = mynode;
 
     for (int node = 0; node < torc_num_nodes(); node++)
     {
@@ -553,11 +566,19 @@ void torc_enable_stealing()
     }
 }
 
+/**
+ * @brief Set the internode_stealing flag to 1 (enable stealing)
+ * 
+ */
 void torc_i_enable_stealing()
 {
     internode_stealing = 1;
 }
 
+/**
+ * @brief Set the internode_stealing flag to 0 (disable stealing)
+ * 
+ */
 void torc_i_disable_stealing()
 {
     internode_stealing = 0;
@@ -571,10 +592,11 @@ void torc_reset_statistics()
 {
 #if DEBUG
     printf("Reseting statistics ...\n");
+    fflush(0);
 #endif
 
     torc_t mydata;
-    memset(&mydata, 0, sizeof(torc_t));
+    memset(&mydata, 0, torc_size);
 
     int const mynode = torc_node_id();
 
