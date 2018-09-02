@@ -113,7 +113,7 @@ void _torc_core_execution(torc_t *desc)
         DO_CASE(22);
         DO_CASE(23);
     default:
-        Error("Function with more than %d arguments..!", MAX_TORC_ARGS);
+        Error("Function with more than MAX_TORC_ARGS arguments..!");
         break;
     }
 }
