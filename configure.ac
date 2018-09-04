@@ -97,22 +97,22 @@ AC_ARG_WITH(sync,
     ]
 )
 
-
 if test ".$syncopt" = "."; then
     AC_MSG_NOTICE([posix synchronization method not defined - using default (mutex_try)])
     syncopt=mutex_try
     mutexspin=mutex
 fi
 
-
 if test ".$mutexspin" = ".mutex"; then
     # Check for mutex locks
     AC_MSG_CHECKING([for usable pthread_mutex_t])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
-    [[    #include <pthread.h>
+    [[    
+        #include <pthread.h>
         pthread_mutex_t lock;
     ]],
-    [[    pthread_mutex_init(&lock,NULL);
+    [[    
+        pthread_mutex_init(&lock, NULL);
         pthread_mutex_lock(&lock);
         pthread_mutex_unlock(&lock);
         pthread_mutex_trylock(&lock);
@@ -126,16 +126,15 @@ elif test ".$mutexspin" = ".spin"; then
     AC_MSG_CHECKING([for usable pthread_spinlock_t])
     AC_COMPILE_IFELSE([AC_LANG_PROGRAM(
     [[
-    #define _XOPEN_SOURCE 600
-
-    #include <pthread.h>
-    pthread_spinlock_t lock;
+        #define _XOPEN_SOURCE 600
+        #include <pthread.h>
+        pthread_spinlock_t lock;
     ]],
     [[
-    pthread_spin_init(&lock,0);
-    pthread_spin_lock(&lock);
-    pthread_spin_unlock(&lock);
-    pthread_spin_trylock(&lock);
+        pthread_spin_init(&lock, 0);
+        pthread_spin_lock(&lock);
+        pthread_spin_unlock(&lock);
+        pthread_spin_trylock(&lock);
     ]])],,
     AC_MSG_FAILURE([pthread_spinlock_t not available]))
     AC_MSG_RESULT([yes])
@@ -143,15 +142,15 @@ else
     AC_MSG_FAILURE([no appropriate synchronization method found])
 fi
 
-
+(cd include; if test -e ps_config.h; then rm ps_config.h; fi)
 if test ".$syncopt" = ".mutex"; then
-    (cd include; echo "#define POSIX_MUTEX_LOCK" > ps_config.h)
+    (cd include; echo "#define POSIX_MUTEX_LOCK" >> ps_config.h)
 elif test ".$syncopt" = ".mutex_try"; then
-    (cd include; echo "#define POSIX_MUTEX_TRYLOCK" > ps_config.h)
+    (cd include; echo "#define POSIX_MUTEX_TRYLOCK" >> ps_config.h)
 elif test ".$syncopt" = ".spin"; then
-    (cd include; echo  "#define POSIX_SPIN_LOCK" > ps_config.h)
+    (cd include; echo  "#define POSIX_SPIN_LOCK" >> ps_config.h)
 elif test ".$syncopt" = ".spin_try"; then
-    (cd include; echo  "#define POSIX_SPIN_TRYLOCK" > ps_config.h)
+    (cd include; echo  "#define POSIX_SPIN_TRYLOCK" >> ps_config.h)
 else
     AC_MSG_FAILURE([no appropriate synchronization method found])
 fi
@@ -335,12 +334,13 @@ else
 instdir=$prefix
 fi
 
+(cd scripts; if test -e torc_cflags; then rm torc_cflags; fi; if test -e torc_libs; then rm torc_libs; fi;)
 if test ".$mutexspin" = ".spin"; then
-(cd scripts; echo "echo -I${instdir}/include -D_REENTRANT -D_XOPEN_SOURCE=600" > torc_cflags; chmod +x torc_cflags)
+(cd scripts; echo "echo -I${instdir}/include -D_REENTRANT -D_XOPEN_SOURCE=600" >> torc_cflags; chmod +x torc_cflags)
 else
-(cd scripts; echo "echo -I${instdir}/include -D_REENTRANT" > torc_cflags; chmod +x torc_cflags)
+(cd scripts; echo "echo -I${instdir}/include -D_REENTRANT" >> torc_cflags; chmod +x torc_cflags)
 fi
-(cd scripts; echo "echo -L${instdir}/lib -ltorc -lpthread" > torc_libs; chmod +x torc_libs)
+(cd scripts; echo "echo -L${instdir}/lib -ltorc -lpthread" >> torc_libs; chmod +x torc_libs)
 
 #==============================================================================
 # Torc-Lite
@@ -388,11 +388,27 @@ AC_ARG_WITH(mpilibdir,
     fi)
 
 # Statistics
-#AC_ARG_ENABLE(stats,
-#    AC_HELP_STRING([--enable-stats], [enable statistics (default:disabled)]),
-#    if eval "test x$enable_stats = xyes"; then
-        AC_DEFINE(TORC_STATS,,[Runtime statistics])
-#    fi,)
+AC_ARG_ENABLE([stats],
+	AS_HELP_STRING([--enable-stats@<:@=ARG@:>@], 
+			[Enable statistics (default:enabled)]), 
+	[
+		if test x"${enableval}" = xno; then
+			ax_enablestats=no
+		elif test x"${enableval}" = xyes; then
+			ax_enablestats=yes
+		elif test x"${enableval}" != x; then
+			ax_enablestats=no
+		else
+			ax_enablestats=yes
+		fi
+	], [
+		ax_enablestats=yes
+	]
+)
+
+if test x"${ax_enablestats}" = xyes; then
+    AC_DEFINE(TORC_STATS,,[Runtime statistics])
+fi
 
 LDFLAGS="${LDFLAGS} ${MPILIB} -lpthread"
 
